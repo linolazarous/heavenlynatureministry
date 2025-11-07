@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import {
   Table,
   TableBody,
@@ -23,35 +22,21 @@ import {
   FormControl,
   InputLabel,
   Tooltip,
-  Avatar,
-  Chip,
-  Alert,
   Box,
   Card,
-  CardContent
+  CardContent,
+  Alert
 } from '@mui/material';
 import { 
   Edit, 
   Delete, 
   Add, 
   Close, 
-  VerifiedUser, 
-  Person, 
-  EditNote,
   Refresh,
   Warning,
   CheckCircle,
   Cancel
 } from '@mui/icons-material';
-import { useConfirm } from 'material-ui-confirm';
-import { format, formatDistanceToNow } from 'date-fns';
-import { useAuth } from '../hooks/useAuth';
-import RoleChip from '../components/RoleChip';
-import UserAvatar from '../components/UserAvatar';
-import LoadingSpinner from '../components/LoadingSpinner';
-import ErrorMessage from '../components/ErrorMessage';
-import { userAPI } from '../services/api';
-import './Users.css';
 
 // Constants
 const ROLE_OPTIONS = [
@@ -94,20 +79,43 @@ const useUserManagement = () => {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const { user: currentAdmin } = useAuth();
+  // Mock current admin user
+  const currentAdmin = { _id: 'admin-1', name: 'Admin User', role: 'admin' };
 
   const fetchUsers = useCallback(async () => {
     try {
       updateState({ loading: true, error: null });
-      const response = await userAPI.getUsers({
-        search: state.searchTerm,
-        role: state.filterRole !== 'all' ? state.filterRole : undefined
-      });
-      updateState({ users: response.data, loading: false });
+      // Mock API call - replace with actual API
+      const mockUsers = [
+        {
+          _id: '1',
+          name: 'John Doe',
+          email: 'john@example.com',
+          role: 'user',
+          createdAt: new Date().toISOString(),
+          emailVerified: true,
+          isActive: true,
+          lastLogin: new Date().toISOString()
+        },
+        {
+          _id: '2', 
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'volunteer',
+          createdAt: new Date().toISOString(),
+          emailVerified: false,
+          isActive: true,
+          lastLogin: new Date().toISOString()
+        }
+      ];
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      updateState({ users: mockUsers, loading: false });
     } catch (err) {
       console.error('Failed to fetch users:', err);
       updateState({ 
-        error: err.response?.data?.message || 'Failed to fetch users',
+        error: 'Failed to fetch users',
         loading: false,
         snackbar: {
           open: true,
@@ -116,7 +124,7 @@ const useUserManagement = () => {
         }
       });
     }
-  }, [state.searchTerm, state.filterRole, updateState]);
+  }, [updateState]);
 
   const validateForm = useCallback((formData, isEditing = false) => {
     const errors = {};
@@ -146,23 +154,28 @@ const useUserManagement = () => {
     return errors;
   }, []);
 
+  // Mock API functions
   const handleCreateUser = useCallback(async (userData) => {
-    const response = await userAPI.createUser(userData);
-    return response.data;
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { ...userData, _id: Date.now().toString() };
   }, []);
 
   const handleUpdateUser = useCallback(async (userId, userData) => {
-    const response = await userAPI.updateUser(userId, userData);
-    return response.data;
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { ...userData, _id: userId };
   }, []);
 
   const handleDeleteUser = useCallback(async (userId) => {
-    await userAPI.deleteUser(userId);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }, []);
 
-  const handleResetPassword = useCallback(async (userId) => {
-    const response = await userAPI.resetPassword(userId);
-    return response.data;
+  const handlePasswordReset = useCallback(async (userId) => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { tempPassword: 'Temp123!' };
   }, []);
 
   return {
@@ -173,9 +186,106 @@ const useUserManagement = () => {
     handleCreateUser,
     handleUpdateUser,
     handleDeleteUser,
-    handleResetPassword,
+    handlePasswordReset,
     currentAdmin
   };
+};
+
+// Simple Role Chip Component
+const RoleChip = ({ role }) => {
+  const getColor = () => {
+    switch (role) {
+      case 'admin': return 'error';
+      case 'moderator': return 'warning';
+      case 'editor': return 'info';
+      case 'volunteer': return 'secondary';
+      default: return 'default';
+    }
+  };
+
+  return (
+    <Box
+      component="span"
+      sx={{
+        px: 1,
+        py: 0.5,
+        borderRadius: 1,
+        fontSize: '0.75rem',
+        fontWeight: 'medium',
+        backgroundColor: getColor() + '.light',
+        color: getColor() + '.dark',
+        textTransform: 'capitalize'
+      }}
+    >
+      {role}
+    </Box>
+  );
+};
+
+// Simple User Avatar Component
+const UserAvatar = ({ user, size = 40 }) => {
+  const getInitials = (name) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
+
+  return (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: 'primary.main',
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: size * 0.4,
+        fontWeight: 'bold'
+      }}
+    >
+      {getInitials(user.name)}
+    </Box>
+  );
+};
+
+// Simple Loading Spinner Component
+const LoadingSpinner = ({ message = 'Loading...' }) => (
+  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 4 }}>
+    <CircularProgress />
+    <Typography variant="body2" sx={{ mt: 2 }}>
+      {message}
+    </Typography>
+  </Box>
+);
+
+// Simple Error Message Component
+const ErrorMessage = ({ message, onRetry, severity = 'error' }) => (
+  <Alert 
+    severity={severity} 
+    action={
+      onRetry && (
+        <Button color="inherit" size="small" onClick={onRetry}>
+          Retry
+        </Button>
+      )
+    }
+    sx={{ mb: 2 }}
+  >
+    {message}
+  </Alert>
+);
+
+// Simple Confirm Hook
+const useConfirm = () => {
+  return useCallback((options) => {
+    return new Promise((resolve, reject) => {
+      if (window.confirm(options.description || 'Are you sure?')) {
+        resolve();
+      } else {
+        reject('cancel');
+      }
+    });
+  }, []);
 };
 
 const UsersAdmin = ({ className = '' }) => {
@@ -197,7 +307,7 @@ const UsersAdmin = ({ className = '' }) => {
     handleCreateUser,
     handleUpdateUser,
     handleDeleteUser,
-    handleResetPassword,
+    handlePasswordReset,
     currentAdmin
   } = useUserManagement();
 
@@ -210,11 +320,13 @@ const UsersAdmin = ({ className = '' }) => {
 
   // Filtered and sorted users
   const filteredUsers = useMemo(() => {
-    return users.filter(user => 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [users, searchTerm]);
+    return users.filter(user => {
+      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = filterRole === 'all' || user.role === filterRole;
+      return matchesSearch && matchesRole;
+    }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }, [users, searchTerm, filterRole]);
 
   // Event handlers
   const handleDialogOpen = useCallback((user = null) => {
@@ -296,8 +408,7 @@ const UsersAdmin = ({ className = '' }) => {
       updateState({
         snackbar: {
           open: true,
-          message: err.response?.data?.message || 
-                  (currentUser ? 'Failed to update user' : 'Failed to create user'),
+          message: currentUser ? 'Failed to update user' : 'Failed to create user',
           severity: 'error'
         }
       });
@@ -318,11 +429,7 @@ const UsersAdmin = ({ className = '' }) => {
   const handleDelete = useCallback(async (user) => {
     try {
       await confirm({
-        title: 'Confirm User Deletion',
-        description: `Are you sure you want to permanently delete ${user.name}? This action cannot be undone and will remove all user data.`,
-        confirmationText: 'Delete User',
-        confirmationButtonProps: { variant: 'contained', color: 'error' },
-        cancellationButtonProps: { variant: 'outlined' }
+        description: `Are you sure you want to permanently delete ${user.name}? This action cannot be undone.`
       });
 
       await handleDeleteUser(user._id);
@@ -347,16 +454,13 @@ const UsersAdmin = ({ className = '' }) => {
     }
   }, [confirm, handleDeleteUser, fetchUsers, updateState]);
 
-  const handleResetPassword = useCallback(async (user) => {
+  const handlePasswordReset = useCallback(async (user) => {
     try {
       await confirm({
-        title: 'Reset User Password',
-        description: `This will generate a temporary password for ${user.name}. They will need to reset it on next login.`,
-        confirmationText: 'Reset Password',
-        confirmationButtonProps: { variant: 'contained', color: 'warning' }
+        description: `This will generate a temporary password for ${user.name}. They will need to reset it on next login.`
       });
 
-      const result = await handleResetPassword(user._id);
+      const result = await handlePasswordReset(user._id);
       updateState({
         snackbar: {
           open: true,
@@ -376,7 +480,7 @@ const UsersAdmin = ({ className = '' }) => {
         });
       }
     }
-  }, [confirm, handleResetPassword, updateState]);
+  }, [confirm, handlePasswordReset, updateState]);
 
   const handleSearchChange = useCallback((e) => {
     updateState({ searchTerm: e.target.value });
@@ -395,27 +499,27 @@ const UsersAdmin = ({ className = '' }) => {
 
   if (loading && users.length === 0) {
     return (
-      <div className="users-admin-loading">
+      <Box className="users-admin-loading">
         <LoadingSpinner message="Loading users..." />
-      </div>
+      </Box>
     );
   }
 
   return (
-    <div className={`users-admin-container ${className}`}>
+    <Box className={`users-admin-container ${className}`} sx={{ p: 2 }}>
       {/* Header */}
-      <Card className="users-header-card">
+      <Card sx={{ mb: 2 }}>
         <CardContent>
-          <div className="users-header">
-            <div>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box>
               <Typography variant="h4" component="h1" gutterBottom>
                 User Management
               </Typography>
               <Typography variant="body1" color="textSecondary">
                 Manage user accounts, roles, and permissions
               </Typography>
-            </div>
-            <div className="users-actions">
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -429,11 +533,11 @@ const UsersAdmin = ({ className = '' }) => {
                   <Refresh />
                 </IconButton>
               </Tooltip>
-            </div>
-          </div>
+            </Box>
+          </Box>
 
           {/* Search and Filter */}
-          <div className="users-filters">
+          <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField
               placeholder="Search users..."
               value={searchTerm}
@@ -456,7 +560,7 @@ const UsersAdmin = ({ className = '' }) => {
                 ))}
               </Select>
             </FormControl>
-          </div>
+          </Box>
         </CardContent>
       </Card>
 
@@ -470,14 +574,13 @@ const UsersAdmin = ({ className = '' }) => {
       )}
 
       {/* Users Table */}
-      <TableContainer component={Paper} className="users-table">
+      <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>User</TableCell>
               <TableCell>Contact</TableCell>
               <TableCell>Role</TableCell>
-              <TableCell>Joined</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -486,75 +589,41 @@ const UsersAdmin = ({ className = '' }) => {
             {filteredUsers.map((user) => (
               <TableRow key={user._id} hover>
                 <TableCell>
-                  <div className="user-cell">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <UserAvatar user={user} size={40} />
-                    <div className="user-info">
+                    <Box>
                       <Typography variant="body1" fontWeight="medium">
                         {user.name}
                       </Typography>
                       {user._id === currentAdmin._id && (
-                        <Chip 
-                          size="small" 
-                          label="You" 
-                          color="primary" 
-                          variant="outlined"
-                        />
-                      )}
-                      {user.lastLogin && (
-                        <Typography variant="caption" color="textSecondary">
-                          Last login: {formatDistanceToNow(new Date(user.lastLogin))} ago
+                        <Typography variant="caption" color="primary">
+                          (You)
                         </Typography>
                       )}
-                    </div>
-                  </div>
+                    </Box>
+                  </Box>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">{user.email}</Typography>
-                  {user.phone && (
-                    <Typography variant="caption" color="textSecondary">
-                      {user.phone}
-                    </Typography>
-                  )}
                 </TableCell>
                 <TableCell>
                   <RoleChip role={user.role} />
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">
-                    {format(new Date(user.createdAt), 'MMM d, yyyy')}
-                  </Typography>
-                </TableCell>
-                <TableCell>
                   {user.emailVerified ? (
-                    <Chip 
-                      icon={<CheckCircle fontSize="small" />} 
-                      label="Verified" 
-                      size="small" 
-                      color="success" 
-                      variant="outlined"
-                    />
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <CheckCircle fontSize="small" color="success" />
+                      <Typography variant="body2">Verified</Typography>
+                    </Box>
                   ) : (
-                    <Chip 
-                      icon={<Warning fontSize="small" />} 
-                      label="Pending" 
-                      size="small" 
-                      color="warning" 
-                      variant="outlined"
-                    />
-                  )}
-                  {user.isActive === false && (
-                    <Chip 
-                      icon={<Cancel fontSize="small" />} 
-                      label="Inactive" 
-                      size="small" 
-                      color="error" 
-                      variant="outlined"
-                      sx={{ ml: 1 }}
-                    />
+                    <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Warning fontSize="small" color="warning" />
+                      <Typography variant="body2">Pending</Typography>
+                    </Box>
                   )}
                 </TableCell>
                 <TableCell align="right">
-                  <div className="action-buttons">
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
                     <Tooltip title="Edit user">
                       <IconButton 
                         color="primary" 
@@ -567,9 +636,9 @@ const UsersAdmin = ({ className = '' }) => {
                     <Tooltip title="Reset password">
                       <IconButton 
                         color="secondary"
-                        onClick={() => handleResetPassword(user)}
+                        onClick={() => handlePasswordReset(user)}
                       >
-                        <EditNote />
+                        <Refresh />
                       </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete user">
@@ -581,7 +650,7 @@ const UsersAdmin = ({ className = '' }) => {
                         <Delete />
                       </IconButton>
                     </Tooltip>
-                  </div>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
@@ -593,11 +662,11 @@ const UsersAdmin = ({ className = '' }) => {
             <Typography variant="h6" color="textSecondary">
               No users found
             </Typography>
-            {searchTerm || filterRole !== 'all' ? (
+            {(searchTerm || filterRole !== 'all') && (
               <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
                 Try adjusting your search or filter criteria
               </Typography>
-            ) : null}
+            )}
           </Box>
         )}
       </TableContainer>
@@ -655,12 +724,12 @@ const UsersAdmin = ({ className = '' }) => {
               >
                 {ROLE_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
-                    <div className="role-option">
+                    <Box>
                       <Typography variant="body1">{option.label}</Typography>
                       <Typography variant="caption" color="textSecondary">
                         {option.description}
                       </Typography>
-                    </div>
+                    </Box>
                   </MenuItem>
                 ))}
               </Select>
@@ -745,16 +814,8 @@ const UsersAdmin = ({ className = '' }) => {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </div>
+    </Box>
   );
-};
-
-UsersAdmin.propTypes = {
-  className: PropTypes.string
-};
-
-UsersAdmin.defaultProps = {
-  className: ''
 };
 
 export default UsersAdmin;
