@@ -1,0 +1,86 @@
+.donate-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.donate-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.donation-options {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.amount-tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.amount-tier {
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.amount-tier.selected {
+  border-color: #1a4b8c;
+  background: #e6f0fa;
+}
+
+.tier-label {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.custom-amount {
+  margin-top: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.currency-symbol {
+  padding: 0.5rem;
+  background: #eee;
+  border: 1px solid #ddd;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+}
+
+.security-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+}
+
+.donation-benefits ul {
+  list-style: none;
+  padding: 0;
+}
+
+.donation-benefits li {
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}

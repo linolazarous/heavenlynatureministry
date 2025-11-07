@@ -1,0 +1,96 @@
+.home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.home-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.verse-section {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.events-section {
+  margin: 3rem 0;
+}
+
+.view-all-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #1a4b8c;
+  font-weight: 500;
+}
+
+.testimonials-section {
+  margin: 4rem 0;
+}
+
+.quick-links {
+  margin: 3rem 0;
+}
+
+.link-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.link-card {
+  padding: 1.5rem;
+  border-radius: 8px;
+  color: white;
+  text-decoration: none;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.link-card:hover {
+  transform: translateY(-5px);
+}
+
+.link-card.donate {
+  background: linear-gradient(135deg, #1a4b8c, #2c6ecb);
+}
+
+.link-card.ministries {
+  background: linear-gradient(135deg, #4a6f28, #6b9c3e);
+}
+
+.link-card.prayer {
+  background: linear-gradient(135deg, #8c1a1a, #cb2c2c);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 768px) {
+  .home-content {
+    padding: 1rem;
+  }
+  
+  .link-cards {
+    grid-template-columns: 1fr;
+  }
+}
