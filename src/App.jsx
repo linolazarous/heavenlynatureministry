@@ -1,49 +1,54 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Components
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import ScrollToTop from '@/components/ScrollToTop';
-import ErrorMessage from '@/components/ErrorMessage';
-import LoadingSpinner from '@/components/LoadingSpinner';
+// Core Components (Keep these synchronous for critical path)
+import Header from './components/Header.jsx';
+import Footer from './components/Footer.jsx';
+import ScrollToTop from './components/ScrollToTop.jsx';
+import ErrorMessage from './components/ErrorMessage.jsx';
+import LoadingSpinner from './components/LoadingSpinner.jsx';
 
-// New Refined Components
-import BibleVerseSearch from '@/components/BibleVerseSearch';
-import CountdownTimer from '@/components/CountdownTimer';
-import DailyVerse from '@/components/DailyVerse';
-import DonationForm from '@/components/DonationForm';
-import EmailVerification from '@/components/EmailVerification';
-import EventCalendar from '@/components/EventCalendar';
-import LivestreamNotes from '@/components/LivestreamNotes';
-import LivestreamOverlay from '@/components/LivestreamOverlay';
-import LowerThirdGenerator from '@/components/LowerThirdGenerator';
-import PasswordForm from '@/components/PasswordForm';
-import ProfileForm from '@/components/ProfileForm';
-import SimpleDonation from '@/components/SimpleDonation';
-import Testimonials from '@/components/Testimonials';
-import YouTubeEmbed from '@/components/YouTubeEmbed';
+// Lazy load non-critical components for better performance
+const BibleVerseSearch = lazy(() => import('./components/BibleVerseSearch.jsx'));
+const CountdownTimer = lazy(() => import('./components/CountdownTimer.jsx'));
+const DailyVerse = lazy(() => import('./components/DailyVerse.jsx'));
+const DonationForm = lazy(() => import('./components/DonationForm.jsx'));
+const EmailVerification = lazy(() => import('./components/EmailVerification.jsx'));
+const EventCalendar = lazy(() => import('./components/EventCalendar.jsx'));
+const LivestreamNotes = lazy(() => import('./components/LivestreamNotes.jsx'));
+const LivestreamOverlay = lazy(() => import('./components/LivestreamOverlay.jsx'));
+const LowerThirdGenerator = lazy(() => import('./components/LowerThirdGenerator.jsx'));
+const PasswordForm = lazy(() => import('./components/PasswordForm.jsx'));
+const ProfileForm = lazy(() => import('./components/ProfileForm.jsx'));
+const SimpleDonation = lazy(() => import('./components/SimpleDonation.jsx'));
+const Testimonials = lazy(() => import('./components/Testimonials.jsx'));
+const YouTubeEmbed = lazy(() => import('./components/YouTubeEmbed.jsx'));
 
 // Public Pages
-import Home from '@/pages/Home';
-import Profile from '@/pages/Profile';
-import Livestream from '@/pages/Livestream';
-import Success from '@/public/Success';
-import Cancel from '@/public/Cancel';
+const Home = lazy(() => import('./pages/Home.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
+const Livestream = lazy(() => import('./pages/Livestream.jsx'));
+const Donate = lazy(() => import('./pages/Donate.jsx'));
+const Success = lazy(() => import('./public/Success.jsx'));
+const Cancel = lazy(() => import('./public/Cancel.jsx'));
 
 // Admin Pages
-import AdminHome from '@/admin/Home';
-import AdminUsers from '@/admin/User';
-import AdminLivestream from '@/admin/Livestream';
-import AdminDonate from '@/admin/Donate';
-
-// Public Donation Page
-import Donate from '@/pages/Donate';
+const AdminHome = lazy(() => import('./admin/Home.jsx'));
+const AdminUsers = lazy(() => import('./admin/User.jsx'));
+const AdminLivestream = lazy(() => import('./admin/Livestream.jsx'));
+const AdminDonate = lazy(() => import('./admin/Donate.jsx'));
 
 // Context
-import { AuthProvider, useAuth } from '@/components/AuthContext';
+import { AuthProvider, useAuth } from './components/AuthContext.jsx';
+
+// Error Boundary for lazy components
+const LazyLoadingFallback = ({ componentName = "Component" }) => (
+  <div className="flex items-center justify-center p-8">
+    <LoadingSpinner message={`Loading ${componentName}...`} size="small" />
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -151,7 +156,7 @@ const useLivestreamSchedule = () => {
 
   useEffect(() => {
     checkLivestreamSchedule();
-    const timer = setInterval(checkLivestreamSchedule, 60000); // Check every minute
+    const timer = setInterval(checkLivestreamSchedule, 60000);
 
     return () => {
       if (timer) clearInterval(timer);
@@ -178,10 +183,13 @@ const useAppInitialization = () => {
     try {
       updateState({ loading: true, error: null });
 
+      // Production environment check
+      if (process.env.NODE_ENV === 'production') {
+        console.log('🚀 Heavenly Nature Ministry - Production Build');
+      }
+
       // Simulate essential data loading
       const [configResponse, maintenanceResponse] = await Promise.all([
-        // fetch('/api/config').then(res => res.json()),
-        // fetch('/api/maintenance-status').then(res => res.json()),
         new Promise(resolve => setTimeout(() => resolve({
           ministryName: 'Heavenly Nature Ministry',
           version: '1.0.0',
@@ -190,8 +198,8 @@ const useAppInitialization = () => {
             donations: true,
             events: true
           }
-        }), 800)),
-        new Promise(resolve => setTimeout(() => resolve({ active: false }), 500))
+        }), 500)),
+        new Promise(resolve => setTimeout(() => resolve({ active: false }), 300))
       ]);
 
       if (maintenanceResponse.active) {
@@ -210,7 +218,7 @@ const useAppInitialization = () => {
     } catch (err) {
       console.error('App initialization failed:', err);
       updateState({ 
-        error: err.message || 'Failed to load application. Please refresh the page.',
+        error: 'Failed to load application. Please refresh the page.',
         loading: false 
       });
     }
@@ -228,7 +236,6 @@ const AOSRouteHandler = () => {
 
   useEffect(() => {
     try {
-      // Small delay to ensure DOM is updated
       setTimeout(() => {
         AOS.refresh();
       }, 100);
@@ -295,12 +302,7 @@ const AppErrorBoundary = ({ children }) => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-8 max-w-md">
           <ErrorMessage 
-            message={
-              <div>
-                <h2 className="text-xl font-bold mb-2">Application Error</h2>
-                <p>Something went wrong. Please refresh the page or try again later.</p>
-              </div>
-            }
+            message="Application Error - Please refresh the page"
             onRetry={() => window.location.reload()}
             severity="error"
             showIcon
@@ -327,7 +329,7 @@ const AppContent = () => {
         mirror: false,
         offset: 50,
         delay: 100,
-        disable: window.innerWidth < 768, // Disable on mobile for performance
+        disable: window.innerWidth < 768,
         startEvent: 'DOMContentLoaded'
       });
     } catch (error) {
@@ -408,192 +410,183 @@ const AppContent = () => {
         </Routes>
         
         <main className="flex-grow">
-          <Routes>
-            {/* Public Routes */}
-            <Route 
-              path="/" 
-              element={
-                <Home 
-                  livestreamActive={livestreamActive}
-                  nextStream={nextStream}
-                  components={{
-                    Testimonials,
-                    DailyVerse,
-                    SimpleDonation,
-                    EventCalendar,
-                    YouTubeEmbed
-                  }}
-                />
-              } 
-            />
-            
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <Profile 
-                    components={{
-                      ProfileForm,
-                      PasswordForm,
-                      EmailVerification
-                    }}
-                  />
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/livestream" 
-              element={
-                <Livestream 
-                  livestreamActive={livestreamActive}
-                  components={{
-                    YouTubeEmbed,
-                    LivestreamOverlay,
-                    LivestreamNotes,
-                    BibleVerseSearch,
-                    CountdownTimer,
-                    LowerThirdGenerator
-                  }}
-                />
-              } 
-            />
-            
-            <Route 
-              path="/donate" 
-              element={
-                <Donate 
-                  components={{
-                    DonationForm,
-                    SimpleDonation
-                  }}
-                />
-              } 
-            />
-            
-            <Route path="/success" element={<Success />} />
-            <Route path="/cancel" element={<Cancel />} />
+          <Suspense fallback={<LoadingSpinner fullScreen message="Loading page..." />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route 
+                path="/" 
+                element={
+                  <Suspense fallback={<LazyLoadingFallback componentName="Home" />}>
+                    <Home 
+                      livestreamActive={livestreamActive}
+                      nextStream={nextStream}
+                    />
+                  </Suspense>
+                } 
+              />
+              
+              <Route 
+                path="/profile" 
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<LazyLoadingFallback componentName="Profile" />}>
+                      <Profile />
+                    </Suspense>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/livestream" 
+                element={
+                  <Suspense fallback={<LazyLoadingFallback componentName="Livestream" />}>
+                    <Livestream livestreamActive={livestreamActive} />
+                  </Suspense>
+                } 
+              />
+              
+              <Route 
+                path="/donate" 
+                element={
+                  <Suspense fallback={<LazyLoadingFallback componentName="Donation" />}>
+                    <Donate />
+                  </Suspense>
+                } 
+              />
+              
+              <Route 
+                path="/success" 
+                element={
+                  <Suspense fallback={<LazyLoadingFallback componentName="Success" />}>
+                    <Success />
+                  </Suspense>
+                } 
+              />
+              
+              <Route 
+                path="/cancel" 
+                element={
+                  <Suspense fallback={<LazyLoadingFallback componentName="Cancel" />}>
+                    <Cancel />
+                  </Suspense>
+                } 
+              />
 
-            {/* Additional Public Ministry Routes */}
-            <Route 
-              path="/events" 
-              element={
-                <div className="min-h-screen py-8">
-                  <div className="container mx-auto px-4">
-                    <EventCalendar />
-                  </div>
-                </div>
-              } 
-            />
-            
-            <Route 
-              path="/testimonials" 
-              element={
-                <div className="min-h-screen py-8">
-                  <div className="container mx-auto px-4">
-                    <Testimonials />
-                  </div>
-                </div>
-              } 
-            />
-            
-            <Route 
-              path="/daily-verse" 
-              element={
-                <div className="min-h-screen py-8">
-                  <div className="container mx-auto px-4 max-w-2xl">
-                    <DailyVerse />
-                  </div>
-                </div>
-              } 
-            />
-
-            {/* Admin Routes */}
-            <Route 
-              path="/admin" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminLayout>
-                    <AdminHome />
-                  </AdminLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/users" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminLayout>
-                    <AdminUsers />
-                  </AdminLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/livestream" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminLayout>
-                    <AdminLivestream />
-                  </AdminLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/donate" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminLayout>
-                    <AdminDonate />
-                  </AdminLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/events" 
-              element={
-                <ProtectedRoute requireAdmin>
-                  <AdminLayout>
-                    <div className="p-6">
-                      <h1 className="text-2xl font-bold mb-6">Event Management</h1>
-                      <EventCalendar adminMode={true} />
-                    </div>
-                  </AdminLayout>
-                </ProtectedRoute>
-              } 
-            />
-
-            {/* 404 Fallback */}
-            <Route 
-              path="*" 
-              element={
-                <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                  <div className="text-center p-8">
-                    <h1 className="text-4xl font-bold mb-4 text-gray-800">404</h1>
-                    <p className="text-xl mb-8 text-gray-600">Page not found</p>
-                    <div className="space-x-4">
-                      <a 
-                        href="/" 
-                        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
-                      >
-                        Return Home
-                      </a>
-                      <a 
-                        href="/admin" 
-                        className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
-                      >
-                        Admin Dashboard
-                      </a>
+              {/* Additional Public Ministry Routes */}
+              <Route 
+                path="/events" 
+                element={
+                  <div className="min-h-screen py-8">
+                    <div className="container mx-auto px-4">
+                      <Suspense fallback={<LazyLoadingFallback componentName="Events" />}>
+                        <EventCalendar />
+                      </Suspense>
                     </div>
                   </div>
-                </div>
-              } 
-            />
-          </Routes>
+                } 
+              />
+              
+              <Route 
+                path="/testimonials" 
+                element={
+                  <div className="min-h-screen py-8">
+                    <div className="container mx-auto px-4">
+                      <Suspense fallback={<LazyLoadingFallback componentName="Testimonials" />}>
+                        <Testimonials />
+                      </Suspense>
+                    </div>
+                  </div>
+                } 
+              />
+              
+              <Route 
+                path="/daily-verse" 
+                element={
+                  <div className="min-h-screen py-8">
+                    <div className="container mx-auto px-4 max-w-2xl">
+                      <Suspense fallback={<LazyLoadingFallback componentName="Daily Verse" />}>
+                        <DailyVerse />
+                      </Suspense>
+                    </div>
+                  </div>
+                } 
+              />
+
+              {/* Admin Routes */}
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminLayout>
+                      <Suspense fallback={<LazyLoadingFallback componentName="Admin Dashboard" />}>
+                        <AdminHome />
+                      </Suspense>
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/admin/users" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminLayout>
+                      <Suspense fallback={<LazyLoadingFallback componentName="User Management" />}>
+                        <AdminUsers />
+                      </Suspense>
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/admin/livestream" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminLayout>
+                      <Suspense fallback={<LazyLoadingFallback componentName="Livestream Control" />}>
+                        <AdminLivestream />
+                      </Suspense>
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/admin/donate" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminLayout>
+                      <Suspense fallback={<LazyLoadingFallback componentName="Donation Management" />}>
+                        <AdminDonate />
+                      </Suspense>
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* 404 Fallback */}
+              <Route 
+                path="*" 
+                element={
+                  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                    <div className="text-center p-8">
+                      <h1 className="text-4xl font-bold mb-4 text-gray-800">404</h1>
+                      <p className="text-xl mb-8 text-gray-600">Page not found</p>
+                      <div className="space-x-4">
+                        <a 
+                          href="/" 
+                          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+                        >
+                          Return Home
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                } 
+              />
+            </Routes>
+          </Suspense>
         </main>
 
         {/* Public Footer for non-admin routes */}
