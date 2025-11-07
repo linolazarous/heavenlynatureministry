@@ -10,7 +10,7 @@ import AOS from "aos";
 import "aos/dist/aos.css";
 
 // Core Components
-import Header from "./components/Header.jsx";
+import Header from "../components/Header.jsx";
 import Footer from "./components/Footer.jsx";
 import ScrollToTop from "./components/ScrollToTop.jsx";
 import ErrorMessage from "./components/ErrorMessage.jsx";
@@ -247,3 +247,4 @@ function App() {
 }
 
 export default App;
+
