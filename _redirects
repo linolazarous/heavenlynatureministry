@@ -1,0 +1,8 @@
+# API Proxies
+/api/stripe/* https://api.stripe.com/:splat 200 Authorization=Bearer @stripe_secret_key
+/api/youtube/* https://www.googleapis.com/youtube/v3/:splat 200 Authorization=Bearer @youtube_api_key
+/api/facebook/* https://graph.facebook.com/v19.0/:splat 200 Authorization=Bearer @facebook_client_token
+/api/formspree/* https://formspree.io/f/@formspree_id 200 Accept=application/json
+
+# SPA Fallback (Must be last)
+/* /index.html 200
