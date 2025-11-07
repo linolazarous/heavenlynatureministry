@@ -1,18 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-    extensions: ['.js', '.jsx', '.ts', '.tsx'], // Add this line
-  },
   build: {
     rollupOptions: {
       external: [],
     },
+    sourcemap: false, // Disable source maps in production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Remove console logs in production
+      },
+    },
+  },
+  server: {
+    port: process.env.PORT || 3000,
+    host: true,
   },
 })
