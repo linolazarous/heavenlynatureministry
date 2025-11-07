@@ -8,22 +8,11 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    extensions: ['.js', '.jsx', '.ts', '.tsx'], // Add this line
   },
   build: {
     rollupOptions: {
       external: [],
     },
-    sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
-  },
-  server: {
-    port: 3000,
-    host: true,
   },
 })
