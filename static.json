@@ -1,50 +1,18 @@
 {
-  "root": "public/",
+  "root": "dist/",
   "clean_urls": true,
   "routes": {
     "/**": "index.html"
   },
   "headers": {
-    "/api/**": {
-      "X-Robots-Tag": "none",
-      "Content-Security-Policy": "default-src 'none'"
+    "/**": {
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin"
+    },
+    "/assets/**": {
+      "Cache-Control": "public, max-age=31536000, immutable"
     }
-  },
-  "environment": {
-    "FACEBOOK_APP_ID": "@facebook_app_id",
-    "FACEBOOK_CLIENT_TOKEN": "@facebook_client_token",
-    "STRIPE_SECRET_KEY": "@stripe_secret_key", 
-    "YOUTUBE_API_KEY": "@youtube_api_key",
-    "FORMSPREE_ID": "@formspree_id"
-  },
-  "rewrites": [
-    {
-      "source": "/api/stripe/:splat*",
-      "destination": "https://api.stripe.com/:splat*",
-      "headers": {
-        "Authorization": "Bearer @stripe_secret_key"
-      }
-    },
-    {
-      "source": "/api/youtube/:splat*",
-      "destination": "https://www.googleapis.com/youtube/v3/:splat*",
-      "headers": {
-        "Authorization": "Bearer @youtube_api_key"
-      }
-    },
-    {
-      "source": "/api/facebook/:splat*",
-      "destination": "https://graph.facebook.com/v19.0/:splat*",
-      "headers": {
-        "Authorization": "Bearer @facebook_client_token"
-      }
-    },
-    {
-      "source": "/api/formspree/:splat*", 
-      "destination": "https://formspree.io/f/@formspree_id/:splat*",
-      "headers": {
-        "Accept": "application/json"
-      }
-    }
-  ]
+  }
 }
