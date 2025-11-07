@@ -94,7 +94,9 @@
     </style>
   </div>
 
-  <!-- Scripts will be injected by React build process -->
+  <!-- React Application Script -->
+  <script type="module" src="/src/main.jsx"></script>
+
   <script>
     // Basic error handling for initial load
     window.addEventListener('error', function(e) {
@@ -103,7 +105,16 @@
     
     // Set current year for copyright
     document.addEventListener('DOMContentLoaded', function() {
-      document.getElementById('current-year')?.textContent = new Date().getFullYear();
+      const yearElement = document.getElementById('current-year');
+      if (yearElement) {
+        yearElement.textContent = new Date().getFullYear();
+      }
+    });
+
+    // Enhanced loading state management
+    window.addEventListener('load', function() {
+      // This will be replaced when React hydrates the page
+      console.log('Heavenly Nature Ministry - Application loaded');
     });
   </script>
 </body>
