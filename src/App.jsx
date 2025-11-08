@@ -4,25 +4,25 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Core Components
-const Header = lazy(() => import('./components/Header.jsx'));
-const Footer = lazy(() => import('./components/Footer.jsx'));
-const ScrollToTop = lazy(() => import('./components/ScrollToTop.jsx'));
-const AuthProvider = lazy(() => import('./components/AuthContext.jsx'));
+// Core Components - Fixed relative paths
+const Header = lazy(() => import('./components/Header'));
+const Footer = lazy(() => import('./components/Footer'));
+const ScrollToTop = lazy(() => import('./components/ScrollToTop'));
+const AuthProvider = lazy(() => import('./components/AuthContext'));
 
-// Public Pages
-const Home = lazy(() => import('./pages/Home.jsx'));
-const Profile = lazy(() => import('./pages/Profile.jsx'));
-const Livestream = lazy(() => import('./pages/Livestream.jsx'));
-const Donate = lazy(() => import('./pages/Donate.jsx'));
-const Success = lazy(() => import('./public/Success.jsx'));
-const Cancel = lazy(() => import('./public/Cancel.jsx'));
+// Public Pages - Fixed relative paths
+const Home = lazy(() => import('./pages/Home'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Livestream = lazy(() => import('./pages/Livestream'));
+const Donate = lazy(() => import('./pages/Donate'));
+const Success = lazy(() => import('./public/Success'));
+const Cancel = lazy(() => import('./public/Cancel'));
 
-// Admin Pages
-const AdminHome = lazy(() => import('./admin/Home.jsx'));
-const AdminUsers = lazy(() => import('./admin/User.jsx'));
-const AdminLivestream = lazy(() => import('./admin/Livestream.jsx'));
-const AdminDonate = lazy(() => import('./admin/Donate.jsx'));
+// Admin Pages - Fixed relative paths
+const AdminHome = lazy(() => import('./admin/Home'));
+const AdminUsers = lazy(() => import('./admin/User'));
+const AdminLivestream = lazy(() => import('./admin/Livestream'));
+const AdminDonate = lazy(() => import('./admin/Donate'));
 
 // Reusable Loading Fallback
 const LoadingFallback = ({ message = "Loading..." }) => (
@@ -229,3 +229,4 @@ const App = () => (
 );
 
 export default App;
+
