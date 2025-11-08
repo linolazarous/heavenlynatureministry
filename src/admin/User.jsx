@@ -1,3 +1,4 @@
+// src/admin/User.jsx
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Table,
@@ -307,7 +308,7 @@ const UsersAdmin = ({ className = '' }) => {
     handleCreateUser,
     handleUpdateUser,
     handleDeleteUser,
-    handlePasswordReset,
+    handlePasswordReset, // This is from the hook
     currentAdmin
   } = useUserManagement();
 
@@ -454,7 +455,8 @@ const UsersAdmin = ({ className = '' }) => {
     }
   }, [confirm, handleDeleteUser, fetchUsers, updateState]);
 
-  const handlePasswordReset = useCallback(async (user) => {
+  // FIXED: Use the handlePasswordReset from the hook instead of redefining it
+  const handlePasswordResetAction = useCallback(async (user) => {
     try {
       await confirm({
         description: `This will generate a temporary password for ${user.name}. They will need to reset it on next login.`
@@ -636,7 +638,7 @@ const UsersAdmin = ({ className = '' }) => {
                     <Tooltip title="Reset password">
                       <IconButton 
                         color="secondary"
-                        onClick={() => handlePasswordReset(user)}
+                        onClick={() => handlePasswordResetAction(user)}
                       >
                         <Refresh />
                       </IconButton>
