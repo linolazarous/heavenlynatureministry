@@ -80,7 +80,7 @@ const Footer = () => {
                 <i className="fab fa-whatsapp"></i>
               </a>
               <a
-                href="mailto:info@heavenlynature.org"
+                href="mailto:info@heavenlynatureministry.com"
                 aria-label="Email"
                 className="social-link"
               >
@@ -157,7 +157,7 @@ const Footer = () => {
                 <i className="fas fa-envelope contact-icon"></i>
                 <div className="contact-details">
                   <strong>Email</strong>
-                  <a href="mailto:info@heavenlynature.org">info@heavenlynature.org</a>
+                  <a href="mailto:info@heavenlynatureministry.com">info@heavenlynature.org</a>
                 </div>
               </div>
             </div>
