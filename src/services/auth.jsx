@@ -1,24 +1,15 @@
+// src/services/auth.jsx
 import { useState, useEffect, useCallback } from 'react';
-import netlifyIdentity from 'netlify-identity-widget';
 
-// Initialize Netlify Identity
+// Mock authentication system (replace with your actual auth provider)
 export const initializeAuth = () => {
-  try {
-    netlifyIdentity.init({
-      container: '#netlify-identity-widget',
-      locale: 'en'
-    });
-    
-    // Set API URL for Netlify Functions
-    netlifyIdentity.on('init', (user) => {
-      console.log('Netlify Identity initialized', user ? 'with user' : 'without user');
-    });
-
-    return netlifyIdentity;
-  } catch (error) {
-    console.error('Failed to initialize Netlify Identity:', error);
-    throw new Error('Authentication system initialization failed');
-  }
+  console.log('Auth system initialized');
+  return {
+    currentUser: () => {
+      const userStr = localStorage.getItem('currentUser');
+      return userStr ? JSON.parse(userStr) : null;
+    }
+  };
 };
 
 // Custom hook for authentication state
@@ -31,6 +22,12 @@ export const useNetlifyAuth = () => {
     setUser(currentUser);
     setIsLoading(false);
     setError(null);
+    
+    if (currentUser) {
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('currentUser');
+    }
   }, []);
 
   const handleLogin = useCallback((user) => {
@@ -53,11 +50,6 @@ export const useNetlifyAuth = () => {
     try {
       const identity = initializeAuth();
 
-      // Set up event listeners
-      identity.on('login', handleLogin);
-      identity.on('logout', handleLogout);
-      identity.on('error', handleError);
-
       // Check current user
       const currentUser = identity.currentUser();
       if (currentUser) {
@@ -65,80 +57,84 @@ export const useNetlifyAuth = () => {
       } else {
         setIsLoading(false);
       }
-
-      // Cleanup
-      return () => {
-        identity.off('login', handleLogin);
-        identity.off('logout', handleLogout);
-        identity.off('error', handleError);
-      };
     } catch (err) {
       handleError(err);
     }
-  }, [handleLogin, handleLogout, handleError, updateAuthState]);
+  }, [handleError, updateAuthState]);
 
-  const login = useCallback((email, password) => {
+  const login = useCallback(async (email, password) => {
     setIsLoading(true);
     setError(null);
     
-    return new Promise((resolve, reject) => {
-      netlifyIdentity.login(email, password, true)
-        .then((user) => {
-          handleLogin(user);
-          resolve(user);
-        })
-        .catch((error) => {
-          handleError(error);
-          reject(error);
-        });
-    });
+    try {
+      // Mock login - replace with actual authentication
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (email && password) {
+        const mockUser = {
+          id: '1',
+          email: email,
+          name: email.split('@')[0],
+          role: 'user',
+          createdAt: new Date().toISOString()
+        };
+        handleLogin(mockUser);
+        return mockUser;
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
+      handleError(error);
+      throw error;
+    }
   }, [handleLogin, handleError]);
 
-  const signup = useCallback((email, password, userData = {}) => {
+  const signup = useCallback(async (email, password, userData = {}) => {
     setIsLoading(true);
     setError(null);
     
-    return new Promise((resolve, reject) => {
-      netlifyIdentity.signup(email, password, userData)
-        .then((user) => {
-          handleLogin(user);
-          resolve(user);
-        })
-        .catch((error) => {
-          handleError(error);
-          reject(error);
-        });
-    });
+    try {
+      // Mock signup - replace with actual authentication
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      if (email && password) {
+        const mockUser = {
+          id: Date.now().toString(),
+          email: email,
+          name: userData.name || email.split('@')[0],
+          role: 'user',
+          createdAt: new Date().toISOString(),
+          ...userData
+        };
+        handleLogin(mockUser);
+        return mockUser;
+      } else {
+        throw new Error('Invalid registration data');
+      }
+    } catch (error) {
+      handleError(error);
+      throw error;
+    }
   }, [handleLogin, handleError]);
 
   const logout = useCallback(() => {
     setIsLoading(true);
-    netlifyIdentity.logout();
-  }, []);
+    handleLogout();
+    setIsLoading(false);
+  }, [handleLogout]);
 
-  const refreshUser = useCallback(() => {
-    const currentUser = netlifyIdentity.currentUser();
+  const refreshUser = useCallback(async () => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
     if (currentUser) {
-      return currentUser.jwt().then((token) => {
-        updateAuthState(currentUser);
-        return { user: currentUser, token };
-      });
+      updateAuthState(currentUser);
+      return { user: currentUser, token: 'mock-token' };
     }
-    return Promise.resolve(null);
+    return null;
   }, [updateAuthState]);
 
   const getToken = useCallback(async () => {
-    const currentUser = netlifyIdentity.currentUser();
-    if (currentUser) {
-      try {
-        const token = await currentUser.jwt();
-        return token;
-      } catch (error) {
-        console.error('Error getting token:', error);
-        return null;
-      }
-    }
-    return null;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    return currentUser ? 'mock-token' : null;
   }, []);
 
   return {
@@ -154,11 +150,24 @@ export const useNetlifyAuth = () => {
   };
 };
 
-// Export Netlify Identity instance
+// Mock auth instance
 export const auth = {
-  open: () => netlifyIdentity.open(),
-  close: () => netlifyIdentity.close(),
-  currentUser: () => netlifyIdentity.currentUser()
+  open: () => console.log('Auth modal would open here'),
+  close: () => console.log('Auth modal would close here'),
+  currentUser: () => JSON.parse(localStorage.getItem('currentUser') || 'null')
 };
 
-export default netlifyIdentity;
+// Mock default export
+const mockAuth = {
+  init: () => console.log('Mock auth initialized'),
+  open: () => console.log('Mock auth open'),
+  close: () => console.log('Mock auth close'),
+  currentUser: () => JSON.parse(localStorage.getItem('currentUser') || 'null'),
+  on: (event, callback) => console.log(`Mock auth event: ${event}`),
+  off: (event, callback) => console.log(`Mock auth event off: ${event}`),
+  login: (email, password) => console.log('Mock login'),
+  logout: () => console.log('Mock logout'),
+  signup: (email, password, data) => console.log('Mock signup')
+};
+
+export default mockAuth;
