@@ -1,5 +1,5 @@
+// src/pages/Profile.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { 
   FaUser, 
   FaDonate, 
@@ -7,8 +7,7 @@ import {
   FaCog,
   FaHistory,
   FaChartLine,
-  FaSyncAlt,
-  FaExclamationTriangle
+  FaSyncAlt
 } from 'react-icons/fa';
 
 // Components
@@ -19,11 +18,11 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import ErrorBoundary from '../components/ErrorBoundary';
 
-// Hooks and Services
-import { useAuth } from '../hooks/useAuth';
+// Services
 import { userService } from '../services/userService';
 import { donationService } from '../services/donationService';
 import { eventService } from '../services/eventService';
+import { authService } from '../services/auth';
 
 // Custom hook for profile data management
 const useProfileData = (userId) => {
@@ -52,8 +51,8 @@ const useProfileData = (userId) => {
       ]);
 
       updateState({
-        profile: profileResponse.data,
-        donationStats: donationStatsResponse.data,
+        profile: profileResponse,
+        donationStats: donationStatsResponse,
         isLoading: false,
         lastUpdated: new Date().toISOString(),
         error: null
@@ -61,7 +60,7 @@ const useProfileData = (userId) => {
     } catch (err) {
       console.error('Failed to load profile data:', err);
       updateState({
-        error: err.response?.data?.message || 'Failed to load profile data',
+        error: err.message || 'Failed to load profile data',
         isLoading: false
       });
     }
@@ -84,6 +83,116 @@ const useProfileData = (userId) => {
     fetchProfileData,
     refreshData,
     updateState
+  };
+};
+
+// Donation History Component
+const DonationHistory = ({ userId, onDonationUpdate }) => {
+  const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchDonations = useCallback(async () => {
+    try {
+      setLoading(true);
+      const donationHistory = await donationService.getUserDonationHistory(userId);
+      setDonations(donationHistory);
+      setError(null);
+    } catch (err) {
+      setError(err.message || 'Failed to load donation history');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchDonations();
+  }, [fetchDonations]);
+
+  if (loading) {
+    return <LoadingSpinner message="Loading donation history..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorMessage 
+        message={error}
+        onRetry={fetchDonations}
+        severity="error"
+      />
+    );
+  }
+
+  return (
+    <div className="donation-history">
+      <div className="section-header">
+        <h2>Donation History</h2>
+        <button onClick={fetchDonations} className="refresh-btn">
+          <FaSyncAlt /> Refresh
+        </button>
+      </div>
+
+      {donations.length === 0 ? (
+        <div className="empty-state">
+          <FaDonate size={48} />
+          <h3>No Donations Yet</h3>
+          <p>Make your first donation to see your history here.</p>
+          <DonationForm onSuccess={onDonationUpdate} />
+        </div>
+      ) : (
+        <div className="donations-list">
+          {donations.map(donation => (
+            <div key={donation.id} className="donation-item">
+              <div className="donation-amount">
+                ${donation.amount}
+              </div>
+              <div className="donation-details">
+                <div className="donation-date">
+                  {new Date(donation.date).toLocaleDateString()}
+                </div>
+                <div className="donation-type">
+                  {donation.type === 'one-time' ? 'One-time' : 'Monthly'}
+                </div>
+              </div>
+              <div className="donation-status">
+                <span className={`status-badge ${donation.status}`}>
+                  {donation.status}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Custom Auth Hook (since useAuth doesn't exist yet)
+const useAuth = () => {
+  const [authState, setAuthState] = useState({
+    user: null,
+    isLoading: true
+  });
+
+  useEffect(() => {
+    // Mock auth state - replace with actual auth logic
+    const currentUser = authService.currentUser();
+    setAuthState({
+      user: currentUser || { id: '1', email: 'user@example.com', name: 'Demo User' },
+      isLoading: false
+    });
+  }, []);
+
+  const updateUser = (userData) => {
+    setAuthState(prev => ({
+      ...prev,
+      user: { ...prev.user, ...userData }
+    }));
+  };
+
+  return {
+    ...authState,
+    updateUser
   };
 };
 
@@ -242,7 +351,7 @@ const Profile = ({ className = '' }) => {
                 
                 <div className="stat-item">
                   <div className="stat-value">
-                    ${(donationStats?.totalDonated || 0).toFixed(2)}
+                    ${(donationStats?.totalDonated || 0).toLocaleString()}
                   </div>
                   <div className="stat-label">Total Given</div>
                 </div>
@@ -317,8 +426,8 @@ const Profile = ({ className = '' }) => {
                   {donationStats?.recentDonations?.length > 0 ? (
                     <div className="recent-donations">
                       <h3>Recent Donations</h3>
-                      {donationStats.recentDonations.slice(0, 5).map(donation => (
-                        <div key={donation.id} className="activity-item">
+                      {donationStats.recentDonations.slice(0, 5).map((donation, index) => (
+                        <div key={index} className="activity-item">
                           <FaDonate className="activity-icon" />
                           <div className="activity-details">
                             <span className="activity-amount">
@@ -350,7 +459,7 @@ const Profile = ({ className = '' }) => {
                     <FaChartLine className="impact-icon" />
                     <div className="impact-content">
                       <div className="impact-value">
-                        ${(donationStats?.totalDonated || 0).toFixed(2)}
+                        ${(donationStats?.totalDonated || 0).toLocaleString()}
                       </div>
                       <div className="impact-label">
                         Total Contribution
@@ -414,14 +523,6 @@ const Profile = ({ className = '' }) => {
       )}
     </div>
   );
-};
-
-Profile.propTypes = {
-  className: PropTypes.string
-};
-
-Profile.defaultProps = {
-  className: ''
 };
 
 export default Profile;
