@@ -12,12 +12,12 @@ import {
 } from 'react-icons/fa';
 
 // Components
-import DonationHistory from '../components/donation/DonationHistory';
-import EventCalendar from '../components/events/EventCalendar';
-import ProfileForm from '../components/profile/ProfileForm';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
-import ErrorMessage from '../components/ui/ErrorMessage';
-import ErrorBoundary from '../components/ui/ErrorBoundary';
+import DonationForm from '../components/donation/DonationForm';
+import EventCalendar from '../components/EventCalendar';
+import ProfileForm from '../components/ProfileForm';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ErrorMessage from '../components/ErrorMessage';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // Hooks and Services
 import { useAuth } from '../hooks/useAuth';
