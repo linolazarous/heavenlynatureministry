@@ -1,6 +1,6 @@
 // src/components/Footer.jsx
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 const Footer = () => {
   const location = useLocation();
@@ -27,22 +27,24 @@ const Footer = () => {
           {/* Ministry Info */}
           <div className="footer-section footer-about">
             <div className="footer-logo">
-              <img
-                src="/images/logo-white.webp"
-                alt="Heavenly Nature Ministry Logo"
-                width="180"
-                height="50"
-                loading="lazy"
-                className="footer-logo-image"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'block';
-                }}
-              />
-              {/* Fallback text logo */}
-              <div className="footer-text-logo" style={{display: 'none'}}>
-                <span className="footer-logo-text">Heavenly Nature Ministry</span>
-              </div>
+              <Link to="/" aria-label="Home - Heavenly Nature Ministry">
+                <img
+                  src="/images/logo-white.webp"
+                  alt="Heavenly Nature Ministry Logo"
+                  width="180"
+                  height="50"
+                  loading="lazy"
+                  className="footer-logo-image"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                {/* Fallback text logo */}
+                <div className="footer-text-logo" style={{display: 'none'}}>
+                  <span className="footer-logo-text">Heavenly Nature Ministry</span>
+                </div>
+              </Link>
             </div>
             <p className="footer-mission">
               "Empowering South Sudan's vulnerable children through
