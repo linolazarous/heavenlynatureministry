@@ -1,5 +1,5 @@
+// src/pages/Home.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import { 
   FaPlayCircle, 
   FaCalendarAlt, 
@@ -405,14 +405,6 @@ const Home = ({ className = '' }) => {
       </main>
     </div>
   );
-};
-
-Home.propTypes = {
-  className: PropTypes.string
-};
-
-Home.defaultProps = {
-  className: ''
 };
 
 export default Home;
