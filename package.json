@@ -13,6 +13,10 @@
     "serve": "vite preview --host 0.0.0.0 --port $PORT"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.15.0",
+    "@mui/material": "^5.15.0",
     "@stripe/react-stripe-js": "^2.4.2",
     "@stripe/stripe-js": "^2.1.11",
     "aos": "^2.3.4",
