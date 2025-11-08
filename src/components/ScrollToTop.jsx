@@ -1,6 +1,6 @@
+// src/components/ScrollToTop.jsx
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import PropTypes from 'prop-types';
 
 // Custom hook for scroll management
 const useScrollToTop = (behavior = 'smooth') => {
@@ -68,23 +68,9 @@ const ScrollToTop = ({
     if (onScroll) {
       onScroll();
     }
-  }, [location.pathname, onScroll]);
+  }, [onScroll]);
 
   return children || null;
-};
-
-ScrollToTop.propTypes = {
-  children: PropTypes.node,
-  behavior: PropTypes.oneOf(['smooth', 'instant', 'auto']),
-  onScroll: PropTypes.func,
-  forwardedRef: PropTypes.oneOfType([
-    PropTypes.func,
-    PropTypes.shape({ current: PropTypes.any })
-  ])
-};
-
-ScrollToTop.defaultProps = {
-  behavior: 'smooth'
 };
 
 // Forward ref version for class components or direct access
