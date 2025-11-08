@@ -70,7 +70,7 @@ const Contact = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800">Email</h3>
-                    <a href="mailto:info@heavenlynature.org" className="text-gray-600 hover:text-green-600">
+                    <a href="mailto:info@heavenlynatureministry.com" className="text-gray-600 hover:text-green-600">
                       info@heavenlynature.org
                     </a>
                   </div>
