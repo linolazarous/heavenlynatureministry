@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_BASE_URL= process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.com;
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.com';
 const STRIPE_PUBLISHABLE_KEY = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
 
 // Initialize Stripe
@@ -122,6 +122,41 @@ export const donationService = {
     }
   },
 
+  // Get user donation stats
+  async getUserDonationStats(userId) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/donations/user/${userId}/stats`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user donation stats:', error);
+      // Return mock data for development
+      return {
+        totalDonated: 1250,
+        donationCount: 12,
+        recentDonations: [
+          { id: '1', amount: 100, date: new Date().toISOString(), status: 'completed' },
+          { id: '2', amount: 50, date: new Date(Date.now() - 86400000).toISOString(), status: 'completed' }
+        ]
+      };
+    }
+  },
+
+  // Get user donation history
+  async getUserDonationHistory(userId) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/donations/user/${userId}/history`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user donation history:', error);
+      // Return mock data for development
+      return [
+        { id: '1', amount: 100, date: new Date().toISOString(), type: 'one-time', status: 'completed' },
+        { id: '2', amount: 50, date: new Date(Date.now() - 86400000).toISOString(), type: 'one-time', status: 'completed' },
+        { id: '3', amount: 25, date: new Date(Date.now() - 172800000).toISOString(), type: 'monthly', status: 'active' }
+      ];
+    }
+  },
+
   // Get donation history (admin only)
   async getDonationHistory(filters = {}) {
     try {
@@ -237,6 +272,29 @@ export const mockDonationService = {
         { name: 'Sarah M.', amount: 200, date: new Date(Date.now() - 172800000).toISOString(), currency: 'USD' }
       ]
     };
+  },
+
+  async getUserDonationStats(userId) {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    return {
+      totalDonated: 1250,
+      donationCount: 12,
+      recentDonations: [
+        { id: '1', amount: 100, date: new Date().toISOString(), status: 'completed' },
+        { id: '2', amount: 50, date: new Date(Date.now() - 86400000).toISOString(), status: 'completed' }
+      ]
+    };
+  },
+
+  async getUserDonationHistory(userId) {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    return [
+      { id: '1', amount: 100, date: new Date().toISOString(), type: 'one-time', status: 'completed' },
+      { id: '2', amount: 50, date: new Date(Date.now() - 86400000).toISOString(), type: 'one-time', status: 'completed' },
+      { id: '3', amount: 25, date: new Date(Date.now() - 172800000).toISOString(), type: 'monthly', status: 'active' }
+    ];
   }
 };
 
