@@ -4,28 +4,28 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Core Components - WITHOUT .jsx extensions
-const Header = lazy(() => import('./components/Header'));
-const Footer = lazy(() => import('./components/Footer'));
-const ScrollToTop = lazy(() => import('./components/ScrollToTop'));
-const AuthProvider = lazy(() => import('./components/AuthContext'));
+// Core Components - Absolute paths
+const Header = lazy(() => import('/src/components/Header.jsx'));
+const Footer = lazy(() => import('/src/components/Footer.jsx'));
+const ScrollToTop = lazy(() => import('/src/components/ScrollToTop.jsx'));
+const AuthProvider = lazy(() => import('/src/components/AuthContext.jsx'));
 
-// Public Pages - WITHOUT .jsx extensions
-const Home = lazy(() => import('./pages/Home'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Livestream = lazy(() => import('./pages/Livestream'));
-const Donate = lazy(() => import('./pages/Donate'));
-const Success = lazy(() => import('./public/Success'));
-const Cancel = lazy(() => import('./public/Cancel'));
-const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
-const Terms = lazy(() => import('./pages/Terms'));
-const Contact = lazy(() => import('./pages/Contact'));
+// Public Pages - Absolute paths
+const Home = lazy(() => import('/src/pages/Home.jsx'));
+const Profile = lazy(() => import('/src/pages/Profile.jsx'));
+const Livestream = lazy(() => import('/src/pages/Livestream.jsx'));
+const Donate = lazy(() => import('/src/pages/Donate.jsx'));
+const Success = lazy(() => import('/src/public/Success.jsx'));
+const Cancel = lazy(() => import('/src/public/Cancel.jsx'));
+const PrivacyPolicy = lazy(() => import('/src/pages/PrivacyPolicy.jsx'));
+const Terms = lazy(() => import('/src/pages/Terms.jsx'));
+const Contact = lazy(() => import('/src/pages/Contact.jsx'));
 
-// Admin Pages - WITHOUT .jsx extensions
-const AdminHome = lazy(() => import('./admin/Home'));
-const AdminUsers = lazy(() => import('./admin/User'));
-const AdminLivestream = lazy(() => import('./admin/Livestream'));
-const AdminDonate = lazy(() => import('./admin/Donate'));
+// Admin Pages - Absolute paths
+const AdminHome = lazy(() => import('/src/admin/Home.jsx'));
+const AdminUsers = lazy(() => import('/src/admin/User.jsx'));
+const AdminLivestream = lazy(() => import('/src/admin/Livestream.jsx'));
+const AdminDonate = lazy(() => import('/src/admin/Donate.jsx'));
 
 // Reusable Loading Fallback
 const LoadingFallback = ({ message = "Loading..." }) => (
@@ -409,4 +409,5 @@ const App = () => (
 );
 
 export default App;
+
 
