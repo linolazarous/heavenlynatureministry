@@ -14,7 +14,7 @@ const AuthProvider = lazy(() => import('./components/AuthContext'));
 const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Livestream = lazy(() => import('./pages/Livestream'));
-const Donate = lazy(() => import('./pages/Donate'));
+const Donation = lazy(() => import('./pages/Donation'));
 const Success = lazy(() => import('./public/Success'));
 const Cancel = lazy(() => import('./public/Cancel'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
@@ -109,3 +109,4 @@ const App = () => (
 );
 
 export default App;
+
