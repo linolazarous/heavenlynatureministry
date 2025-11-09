@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { 
   FaPlay, 
@@ -8,7 +8,9 @@ import {
   FaVolumeUp,
   FaVolumeMute,
   FaSpinner,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaComment,
+  FaTimes
 } from 'react-icons/fa';
 import './YouTubeEmbed.css';
 
@@ -21,7 +23,8 @@ const useYouTubeEmbed = (videoId, autoplay = false) => {
     isFullscreen: false,
     error: null,
     showChat: false,
-    isLoading: true
+    isLoading: true,
+    aspectRatio: '16/9'
   });
 
   const updateState = useCallback((updates) => {
@@ -29,6 +32,7 @@ const useYouTubeEmbed = (videoId, autoplay = false) => {
   }, []);
 
   const iframeRef = useRef(null);
+  const playerRef = useRef(null);
 
   const embedUrl = useMemo(() => {
     if (!videoId) return null;
@@ -39,8 +43,10 @@ const useYouTubeEmbed = (videoId, autoplay = false) => {
       modestbranding: '1',
       rel: '0',
       showinfo: '0',
-      controls: '1',
-      enablejsapi: '1'
+      controls: '0', // We'll use our own controls
+      enablejsapi: '1',
+      playsinline: '1',
+      origin: window.location.origin
     });
 
     return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
@@ -59,14 +65,17 @@ const useYouTubeEmbed = (videoId, autoplay = false) => {
     });
   }, [updateState]);
 
-  const handleError = useCallback(() => {
+  const handleError = useCallback((error) => {
+    console.error('YouTube embed error:', error);
     updateState({ 
-      error: 'Failed to load YouTube video', 
+      error: 'Failed to load YouTube video. Please check your connection.', 
       isLoading: false 
     });
   }, [updateState]);
 
   const togglePlay = useCallback(() => {
+    // This would typically use YouTube IFrame API
+    // For now, we'll just update the UI state
     updateState(prev => ({ 
       ...prev, 
       isPlaying: !prev.isPlaying 
@@ -80,32 +89,32 @@ const useYouTubeEmbed = (videoId, autoplay = false) => {
     }));
   }, [updateState]);
 
-  const toggleFullscreen = useCallback(() => {
-    if (!iframeRef.current) return;
+  const toggleFullscreen = useCallback(async () => {
+    const container = iframeRef.current?.parentElement?.parentElement;
+    if (!container) return;
 
-    if (!state.isFullscreen) {
-      if (iframeRef.current.requestFullscreen) {
-        iframeRef.current.requestFullscreen();
-      } else if (iframeRef.current.webkitRequestFullscreen) {
-        iframeRef.current.webkitRequestFullscreen();
-      } else if (iframeRef.current.msRequestFullscreen) {
-        iframeRef.current.msRequestFullscreen();
+    try {
+      if (!state.isFullscreen) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+          await container.webkitRequestFullscreen();
+        } else if (container.msRequestFullscreen) {
+          await container.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
+        }
       }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      }
+    } catch (error) {
+      console.error('Fullscreen error:', error);
     }
-
-    updateState(prev => ({ 
-      ...prev, 
-      isFullscreen: !prev.isFullscreen 
-    }));
-  }, [state.isFullscreen, updateState]);
+  }, [state.isFullscreen]);
 
   const toggleChat = useCallback(() => {
     updateState(prev => ({ 
@@ -123,9 +132,7 @@ const useYouTubeEmbed = (videoId, autoplay = false) => {
         document.msFullscreenElement
       );
       
-      if (isCurrentlyFullscreen !== state.isFullscreen) {
-        updateState({ isFullscreen: isCurrentlyFullscreen });
-      }
+      updateState({ isFullscreen: isCurrentlyFullscreen });
     };
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -137,13 +144,23 @@ const useYouTubeEmbed = (videoId, autoplay = false) => {
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
       document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     };
-  }, [state.isFullscreen, updateState]);
+  }, [updateState]);
+
+  // Handle YouTube IFrame API (simplified)
+  useEffect(() => {
+    // In a real implementation, you'd load the YouTube IFrame API
+    // and create a YT.Player instance for better control
+    if (window.YT && iframeRef.current) {
+      // YouTube API initialization would go here
+    }
+  }, []);
 
   return {
     ...state,
     embedUrl,
     chatUrl,
     iframeRef,
+    playerRef,
     handleLoad,
     handleError,
     togglePlay,
@@ -163,6 +180,7 @@ const YouTubeEmbed = ({
   title = "YouTube video",
   onLoad,
   onError,
+  allowFullscreen = true,
   ...props 
 }) => {
   const {
@@ -189,21 +207,25 @@ const YouTubeEmbed = ({
 
   const containerStyle = useMemo(() => ({
     width,
-    height: shouldShowChat ? `calc(${height} + 300px)` : height
-  }), [width, height, shouldShowChat]);
+    maxWidth: '100%'
+  }), [width]);
+
+  const wrapperStyle = useMemo(() => ({
+    height: shouldShowChat ? `calc(${height} + 400px)` : height
+  }), [height, shouldShowChat]);
 
   const iframeStyle = useMemo(() => ({
     display: isLoaded ? 'block' : 'none'
   }), [isLoaded]);
 
   // Call external callbacks
-  React.useEffect(() => {
+  useEffect(() => {
     if (isLoaded && onLoad) {
       onLoad();
     }
   }, [isLoaded, onLoad]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (error && onError) {
       onError(error);
     }
@@ -211,9 +233,9 @@ const YouTubeEmbed = ({
 
   if (!videoId) {
     return (
-      <div className={`youtube-embed error ${className}`}>
+      <div className={`youtube-embed error ${className}`} style={containerStyle}>
         <div className="embed-error">
-          <FaExclamationTriangle />
+          <FaExclamationTriangle className="error-icon" />
           <p>YouTube video ID is required</p>
         </div>
       </div>
@@ -222,117 +244,145 @@ const YouTubeEmbed = ({
 
   return (
     <div 
-      className={`youtube-embed ${className} ${isFullscreen ? 'fullscreen' : ''}`}
+      className={`youtube-embed ${className} ${isFullscreen ? 'fullscreen' : ''} ${shouldShowChat ? 'with-chat' : ''}`}
       style={containerStyle}
       {...props}
     >
-      {/* Loading State */}
-      {isLoading && (
-        <div className="embed-loading">
-          <FaSpinner className="spinner" />
-          <p>Loading video...</p>
-        </div>
-      )}
+      <div className="embed-wrapper" style={wrapperStyle}>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="embed-loading">
+            <FaSpinner className="spinner" aria-hidden="true" />
+            <p>Loading video...</p>
+          </div>
+        )}
 
-      {/* Error State */}
-      {error && (
-        <div className="embed-error" role="alert">
-          <FaExclamationTriangle />
-          <p>{error}</p>
-          <button 
-            className="retry-button"
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </button>
-        </div>
-      )}
+        {/* Error State */}
+        {error && (
+          <div className="embed-error" role="alert">
+            <FaExclamationTriangle className="error-icon" aria-hidden="true" />
+            <div className="error-content">
+              <p className="error-message">{error}</p>
+              <button 
+                className="retry-button"
+                onClick={() => window.location.reload()}
+                aria-label="Retry loading video"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
 
-      {/* Video Container */}
-      <div className="video-container">
-        <iframe
-          ref={iframeRef}
-          src={embedUrl}
-          style={iframeStyle}
-          title={title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-          onLoad={handleLoad}
-          onError={handleError}
-          frameBorder="0"
-          aria-label={`YouTube video: ${title}`}
-        />
+        {/* Video Container */}
+        <div className="video-container">
+          <iframe
+            ref={iframeRef}
+            src={embedUrl}
+            style={iframeStyle}
+            title={title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen={allowFullscreen}
+            onLoad={handleLoad}
+            onError={(e) => handleError(e)}
+            frameBorder="0"
+            className="youtube-iframe"
+            aria-label={`YouTube video: ${title}`}
+            loading="lazy"
+          />
+          
+          {/* Custom Controls Overlay */}
+          {isLoaded && (
+            <div className="custom-controls-overlay">
+              <button
+                className="play-pause-overlay"
+                onClick={togglePlay}
+                aria-label={isPlaying ? 'Pause video' : 'Play video'}
+              >
+                {isPlaying ? <FaPause /> : <FaPlay />}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Chat Widget */}
+        {showChat && chatUrl && shouldShowChat && (
+          <div className="chat-widget">
+            <div className="chat-header">
+              <div className="chat-title">
+                <FaComment className="chat-icon" aria-hidden="true" />
+                <h4>Live Chat</h4>
+              </div>
+              <button 
+                className="chat-toggle"
+                onClick={toggleChat}
+                aria-label="Hide chat"
+              >
+                <FaTimes aria-hidden="true" />
+              </button>
+            </div>
+            <div className="chat-container">
+              <iframe
+                src={chatUrl}
+                title="YouTube Live Chat"
+                className="chat-iframe"
+                frameBorder="0"
+                aria-label="YouTube live chat"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Chat Widget */}
-      {showChat && chatUrl && shouldShowChat && (
-        <div className="chat-widget">
-          <div className="chat-header">
-            <h4>Live Chat</h4>
-            <button 
-              className="chat-toggle"
-              onClick={toggleChat}
-              aria-label="Hide chat"
-            >
-              ×
-            </button>
-          </div>
-          <iframe
-            src={chatUrl}
-            title="YouTube Live Chat"
-            className="chat-iframe"
-            frameBorder="0"
-            aria-label="YouTube live chat"
-          />
-        </div>
-      )}
-
-      {/* Controls */}
+      {/* Controls Bar */}
       <div className="embed-controls">
         <div className="control-group">
           <button
-            className="control-btn"
+            className={`control-btn ${isPlaying ? 'active' : ''}`}
             onClick={togglePlay}
             aria-label={isPlaying ? 'Pause video' : 'Play video'}
-            disabled={!isLoaded}
+            disabled={!isLoaded || error}
           >
-            {isPlaying ? <FaPause /> : <FaPlay />}
+            {isPlaying ? <FaPause aria-hidden="true" /> : <FaPlay aria-hidden="true" />}
           </button>
 
           <button
-            className="control-btn"
+            className={`control-btn ${isMuted ? 'active' : ''}`}
             onClick={toggleMute}
             aria-label={isMuted ? 'Unmute video' : 'Mute video'}
-            disabled={!isLoaded}
+            disabled={!isLoaded || error}
           >
-            {isMuted ? <FaVolumeMute /> : <FaVolumeUp />}
+            {isMuted ? <FaVolumeMute aria-hidden="true" /> : <FaVolumeUp aria-hidden="true" />}
           </button>
 
           {showChat && (
             <button
-              className="control-btn"
+              className={`control-btn chat-btn ${shouldShowChat ? 'active' : ''}`}
               onClick={toggleChat}
               aria-label={shouldShowChat ? 'Hide chat' : 'Show chat'}
             >
-              💬
+              <FaComment aria-hidden="true" />
             </button>
           )}
 
-          <button
-            className="control-btn"
-            onClick={toggleFullscreen}
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          >
-            {isFullscreen ? <FaCompress /> : <FaExpand />}
-          </button>
+          {allowFullscreen && (
+            <button
+              className={`control-btn fullscreen-btn ${isFullscreen ? 'active' : ''}`}
+              onClick={toggleFullscreen}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            >
+              {isFullscreen ? <FaCompress aria-hidden="true" /> : <FaExpand aria-hidden="true" />}
+            </button>
+          )}
         </div>
 
         {/* Video Status */}
         <div className="video-status">
-          {isLoaded && (
+          {isLoaded && !error && (
             <span className="status-text">
-              {isPlaying ? 'Playing' : 'Paused'} • 
-              {isMuted ? ' Muted' : ' Unmuted'}
+              {isPlaying ? '▶ Playing' : '⏸ Paused'}
+              {isMuted ? ' • 🔇 Muted' : ' • 🔊 Sound'}
             </span>
           )}
         </div>
@@ -345,7 +395,8 @@ const YouTubeEmbed = ({
           onClick={toggleChat}
           aria-label="Show chat"
         >
-          💬
+          <FaComment aria-hidden="true" />
+          <span>Chat</span>
         </button>
       )}
     </div>
@@ -361,7 +412,8 @@ YouTubeEmbed.propTypes = {
   className: PropTypes.string,
   title: PropTypes.string,
   onLoad: PropTypes.func,
-  onError: PropTypes.func
+  onError: PropTypes.func,
+  allowFullscreen: PropTypes.bool
 };
 
 YouTubeEmbed.defaultProps = {
@@ -370,7 +422,8 @@ YouTubeEmbed.defaultProps = {
   width: "100%",
   height: "400px",
   className: "",
-  title: "YouTube video"
+  title: "YouTube video",
+  allowFullscreen: true
 };
 
 export default YouTubeEmbed;
