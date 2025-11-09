@@ -9,7 +9,7 @@ import {
   FaPlay,
   FaStar
 } from 'react-icons/fa';
-import './Testimonials.css';
+import '../css/Testimonials.css';
 
 // Testimonials data
 const TESTIMONIALS_DATA = [
