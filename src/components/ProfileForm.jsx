@@ -9,7 +9,7 @@ import {
   FaExclamationTriangle,
   FaCheckCircle
 } from 'react-icons/fa';
-import { updateUserProfile } from '../../services/userService';
+import { updateUserProfile } from '../services/userService';
 import { toast } from 'react-toastify';
 import '../css/ProfileForm.css';
 
