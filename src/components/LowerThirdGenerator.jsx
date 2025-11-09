@@ -11,7 +11,7 @@ import {
   FaCheckCircle
 } from 'react-icons/fa';
 import { debounce } from 'lodash';
-import './LowerThirdGenerator.css';
+import '../css/LowerThirdGenerator.css';
 
 // Constants
 const DEFAULT_COLOR = '#1a4b8c';
