@@ -12,7 +12,7 @@ import {
   FaComment,
   FaTimes
 } from 'react-icons/fa';
-import './YouTubeEmbed.css';
+import '../css/YouTubeEmbed.css';
 
 // Custom hook for YouTube embed management
 const useYouTubeEmbed = (videoId, autoplay = false) => {
