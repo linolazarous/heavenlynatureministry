@@ -1,7 +1,7 @@
 /**
  * Comprehensive error tracking and monitoring setup
  */
-
+import './error-tracking.css';
 // Error boundary for React components
 export class ErrorBoundary extends React.Component {
   constructor(props) {
