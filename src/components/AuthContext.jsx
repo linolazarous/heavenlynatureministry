@@ -4,26 +4,6 @@ import { magic } from '../services/auth';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Types for better TypeScript-like development (remove if using actual TypeScript)
-const AuthState = {
-  user: null,
-  isLoading: true,
-  isAuthenticated: false,
-};
-
-const AuthActions = {
-  login: async () => {},
-  logout: async () => {},
-  refreshUser: async () => {},
-  getToken: async () => null,
-};
-
-// Create context with proper default values
-export const AuthContext = createContext({
-  ...AuthState,
-  ...AuthActions,
-});
-
 // Error messages for consistent error handling
 const ERROR_MESSAGES = {
   AUTH_CHECK_FAILED: 'Unable to verify authentication status',
@@ -38,6 +18,17 @@ const SUCCESS_MESSAGES = {
   LOGIN_SUCCESS: (email) => `Welcome back, ${email}!`,
   LOGOUT_SUCCESS: 'You have been logged out successfully',
 };
+
+// Create context with proper default values
+export const AuthContext = createContext({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  login: async () => {},
+  logout: async () => {},
+  refreshUser: async () => {},
+  getToken: async () => null,
+});
 
 export function AuthProvider({ children }) {
   const [authState, setAuthState] = useState({
@@ -218,9 +209,7 @@ export function AuthProvider({ children }) {
     const { forceRefresh = false } = options;
     
     try {
-      const token = await magic.user.getIdToken({ 
-        lifespan: 900000 // 15 minutes
-      });
+      const token = await magic.user.getIdToken();
       
       if (!token) {
         throw new Error('No token received');
