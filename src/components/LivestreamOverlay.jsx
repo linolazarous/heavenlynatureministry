@@ -6,7 +6,7 @@ import {
   FaUser,
   FaExclamationTriangle 
 } from 'react-icons/fa';
-import './LivestreamOverlay.css';
+import '../css/LivestreamOverlay.css';
 
 // Custom hook for overlay animations and state management
 const useOverlayManager = () => {
