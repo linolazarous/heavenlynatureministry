@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { loadStripe } from '@stripe/stripe-js';
 import { 
@@ -7,7 +7,8 @@ import {
   FaLock,
   FaHandHoldingHeart,
   FaCheckCircle,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaInfoCircle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import './SimpleDonation.css';
@@ -34,7 +35,8 @@ const useDonationManager = () => {
     isLoading: false,
     error: null,
     success: false,
-    stripe: null
+    stripe: null,
+    isStripeLoading: true
   });
 
   const updateState = useCallback((updates) => {
@@ -42,19 +44,35 @@ const useDonationManager = () => {
   }, []);
 
   // Initialize Stripe
-  React.useEffect(() => {
+  useEffect(() => {
     let isMounted = true;
 
     const initializeStripe = async () => {
       try {
-        const stripe = await loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
-        if (isMounted && stripe) {
-          updateState({ stripe });
+        const stripeKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY;
+        
+        if (!stripeKey) {
+          throw new Error('Stripe publishable key not configured');
+        }
+
+        const stripe = await loadStripe(stripeKey);
+        if (isMounted) {
+          if (stripe) {
+            updateState({ stripe, isStripeLoading: false });
+          } else {
+            updateState({ 
+              error: ERROR_MESSAGES.STRIPE_NOT_LOADED,
+              isStripeLoading: false 
+            });
+          }
         }
       } catch (error) {
         console.error('Failed to initialize Stripe:', error);
         if (isMounted) {
-          updateState({ error: ERROR_MESSAGES.STRIPE_NOT_LOADED });
+          updateState({ 
+            error: ERROR_MESSAGES.STRIPE_NOT_LOADED,
+            isStripeLoading: false 
+          });
         }
       }
     };
@@ -73,7 +91,8 @@ const useDonationManager = () => {
     }
 
     // Validate amount
-    if (amount < MIN_DONATION || amount > MAX_DONATION) {
+    const numericAmount = parseInt(amount);
+    if (isNaN(numericAmount) || numericAmount < MIN_DONATION || numericAmount > MAX_DONATION) {
       updateState({ error: ERROR_MESSAGES.INVALID_AMOUNT });
       return;
     }
@@ -81,21 +100,25 @@ const useDonationManager = () => {
     updateState({ isLoading: true, error: null, success: false });
 
     try {
-      const response = await fetch('/.netlify/functions/create-checkout-session', {
+      // Use environment variable for the API endpoint or fallback
+      const apiEndpoint = process.env.REACT_APP_DONATION_API || '/.netlify/functions/create-checkout-session';
+      
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          amount: Math.round(amount * 100), // Convert to cents
+          amount: Math.round(numericAmount * 100), // Convert to cents
           currency: 'usd',
-          successUrl: `${window.location.origin}/donation-success`,
+          successUrl: `${window.location.origin}/donation-success?session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${window.location.origin}/donate`
         })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
 
       const { sessionId, error: sessionError } = await response.json();
@@ -136,11 +159,12 @@ const useDonationManager = () => {
 
 const SimpleDonation = ({ 
   title = "Support Our Ministry",
-  description = "Your generous gift helps us continue our mission",
+  description = "Your generous gift helps us continue our mission and reach more people with God's word.",
   className = "",
   onDonationStart,
   onDonationSuccess,
-  onDonationError
+  onDonationError,
+  showImpactInfo = true
 }) => {
   const {
     amount,
@@ -149,6 +173,7 @@ const SimpleDonation = ({
     error,
     success,
     stripe,
+    isStripeLoading,
     handleDonation,
     updateState
   } = useDonationManager();
@@ -169,16 +194,16 @@ const SimpleDonation = ({
             error: null 
           });
         }}
-        disabled={isLoading}
+        disabled={isLoading || isStripeLoading}
         aria-pressed={amount === presetAmount && !customAmount}
       >
         ${presetAmount}
       </button>
-    )), [amount, customAmount, isLoading, updateState]
+    )), [amount, customAmount, isLoading, isStripeLoading, updateState]
   );
 
   const handleCustomAmountChange = useCallback((e) => {
-    const value = e.target.value;
+    const value = e.target.value.replace(/[^0-9]/g, ''); // Only allow numbers
     const numericValue = value === '' ? '' : parseInt(value) || 0;
     
     updateState({ 
@@ -196,6 +221,8 @@ const SimpleDonation = ({
       const numericValue = parseInt(customAmount) || 0;
       if (numericValue < MIN_DONATION || numericValue > MAX_DONATION) {
         updateState({ error: ERROR_MESSAGES.INVALID_AMOUNT });
+      } else {
+        updateState({ amount: numericValue });
       }
     }
   }, [customAmount, updateState]);
@@ -212,16 +239,16 @@ const SimpleDonation = ({
 
   const currentAmount = customAmount ? parseInt(customAmount) || 0 : amount;
   const isAmountValid = currentAmount >= MIN_DONATION && currentAmount <= MAX_DONATION;
-  const isStripeReady = Boolean(stripe);
+  const isStripeReady = Boolean(stripe) && !isStripeLoading;
 
   return (
     <div className={`simple-donation ${className}`}>
       <div className="donation-header">
-        <h3>
+        <div className="header-icon-container">
           <FaHandHoldingHeart className="header-icon" />
-          {title}
-        </h3>
-        <p>{description}</p>
+        </div>
+        <h3 className="donation-title">{title}</h3>
+        <p className="donation-description">{description}</p>
       </div>
 
       <div className="donation-content">
@@ -245,55 +272,52 @@ const SimpleDonation = ({
           <div className="custom-amount-input">
             <span className="currency-symbol">$</span>
             <input
-              type="number"
+              type="text"
               id="custom-amount"
-              value={customAmount}
+              value={customAmount ? `$${customAmount}` : ''}
               onChange={handleCustomAmountChange}
               onBlur={handleCustomAmountBlur}
-              placeholder="Other amount"
-              min={MIN_DONATION}
-              max={MAX_DONATION}
-              step="1"
-              disabled={isLoading}
+              placeholder={`$${MIN_DONATION}+`}
+              disabled={isLoading || isStripeLoading}
               aria-describedby="amount-help"
             />
           </div>
           <div id="amount-help" className="amount-help">
-            Minimum: ${MIN_DONATION} • Maximum: ${MAX_DONATION}
+            Amount between ${MIN_DONATION} and ${MAX_DONATION}
           </div>
         </div>
+
+        {/* Selected Amount Display */}
+        {(currentAmount > 0 && isAmountValid) && (
+          <div className="selected-amount">
+            <FaCheckCircle className="amount-check" />
+            <span>Donation Amount: <strong>${currentAmount}</strong></span>
+          </div>
+        )}
 
         {/* Error Display */}
         {error && (
           <div className="donation-error" role="alert">
             <FaExclamationTriangle />
-            {error}
-          </div>
-        )}
-
-        {/* Success Message */}
-        {success && (
-          <div className="donation-success" role="status">
-            <FaCheckCircle />
-            Thank you for your donation!
+            <span>{error}</span>
           </div>
         )}
 
         {/* Donate Button */}
         <button
-          className="donate-button"
+          className={`donate-button ${!isAmountValid || !isStripeReady ? 'disabled' : ''}`}
           onClick={handleDonateClick}
           disabled={isLoading || !isAmountValid || !isStripeReady}
           aria-busy={isLoading}
         >
           {isLoading ? (
             <>
-              <FaSpinner className="spinner" />
+              <FaSpinner className="spinner" aria-hidden="true" />
               Processing...
             </>
           ) : (
             <>
-              <FaLock />
+              <FaLock aria-hidden="true" />
               Donate ${currentAmount}
             </>
           )}
@@ -306,26 +330,37 @@ const SimpleDonation = ({
         </div>
 
         {/* Loading State for Stripe */}
-        {!isStripeReady && !error && (
+        {isStripeLoading && (
           <div className="stripe-loading">
-            <FaSpinner className="spinner" />
-            <span>Initializing payment system...</span>
+            <FaSpinner className="spinner" aria-hidden="true" />
+            <span>Initializing secure payment system...</span>
           </div>
         )}
       </div>
 
       {/* Additional Info */}
-      <div className="donation-info">
-        <details>
-          <summary>How your donation helps</summary>
-          <ul>
-            <li>Supports children's education and feeding programs</li>
-            <li>Funds community outreach and evangelism</li>
-            <li>Maintains ministry facilities and resources</li>
-            <li>Provides pastoral care and counseling</li>
-          </ul>
-        </details>
-      </div>
+      {showImpactInfo && (
+        <div className="donation-info">
+          <details className="impact-details">
+            <summary className="impact-summary">
+              <FaInfoCircle aria-hidden="true" />
+              How your donation helps
+            </summary>
+            <div className="impact-content">
+              <ul className="impact-list">
+                <li>📚 Supports children's education and feeding programs</li>
+                <li>🤝 Funds community outreach and evangelism efforts</li>
+                <li>🏛️ Maintains ministry facilities and resources</li>
+                <li>💝 Provides pastoral care and counseling services</li>
+                <li>🌍 Expands our mission to reach more communities</li>
+              </ul>
+              <div className="impact-note">
+                <em>Every dollar makes a difference in spreading God's love.</em>
+              </div>
+            </div>
+          </details>
+        </div>
+      )}
     </div>
   );
 };
@@ -336,13 +371,15 @@ SimpleDonation.propTypes = {
   className: PropTypes.string,
   onDonationStart: PropTypes.func,
   onDonationSuccess: PropTypes.func,
-  onDonationError: PropTypes.func
+  onDonationError: PropTypes.func,
+  showImpactInfo: PropTypes.bool
 };
 
 SimpleDonation.defaultProps = {
   title: "Support Our Ministry",
-  description: "Your generous gift helps us continue our mission",
-  className: ""
+  description: "Your generous gift helps us continue our mission and reach more people with God's word.",
+  className: "",
+  showImpactInfo: true
 };
 
 export default SimpleDonation;
