@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useState, useEffect } from 'react';
+import React, { forwardRef, useCallback, useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import {
   FaStickyNote,
@@ -6,10 +6,12 @@ import {
   FaSave,
   FaExpand,
   FaCompress,
-  FaCopy
+  FaCopy,
+  FaCheck,
+  FaExclamationTriangle
 } from 'react-icons/fa';
 import { debounce } from 'lodash';
-import '../css/Livestream.css';
+import './LivestreamNotes.css';
 
 // Custom hook for notes management
 const useNotesManager = (initialNotes, updateBroadcast) => {
@@ -17,7 +19,8 @@ const useNotesManager = (initialNotes, updateBroadcast) => {
     notes: initialNotes,
     isEditing: false,
     hasUnsavedChanges: false,
-    lastSaved: null
+    lastSaved: null,
+    copySuccess: false
   });
   
   const updateState = useCallback((updates) => {
@@ -25,8 +28,8 @@ const useNotesManager = (initialNotes, updateBroadcast) => {
   }, []);
   
   // Debounced broadcast update
-  const debouncedUpdate = useCallback(
-    debounce((notes) => {
+  const debouncedUpdate = useMemo(
+    () => debounce((notes) => {
       updateBroadcast({ notes });
       updateState({
         hasUnsavedChanges: false,
@@ -61,12 +64,29 @@ const useNotesManager = (initialNotes, updateBroadcast) => {
   const copyNotes = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(state.notes);
-      // Could show toast: toast.success('Notes copied to clipboard');
+      updateState({ copySuccess: true });
+      setTimeout(() => updateState({ copySuccess: false }), 2000);
     } catch (err) {
       console.error('Failed to copy notes:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = state.notes;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      updateState({ copySuccess: true });
+      setTimeout(() => updateState({ copySuccess: false }), 2000);
     }
-  }, [state.notes]);
+  }, [state.notes, updateState]);
   
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedUpdate.cancel();
+    };
+  }, [debouncedUpdate]);
+
   return {
     ...state,
     handleNotesChange,
@@ -83,13 +103,15 @@ const LivestreamNotes = forwardRef(({
   notes: externalNotes,
   updateBroadcast,
   maxLength = 5000,
-  autoSave = true
+  autoSave = true,
+  className = ''
 }, ref) => {
   const {
     notes,
     isEditing,
     hasUnsavedChanges,
     lastSaved,
+    copySuccess,
     handleNotesChange,
     clearNotes,
     saveNotes,
@@ -112,7 +134,7 @@ const LivestreamNotes = forwardRef(({
   }, [handleNotesChange, maxLength]);
   
   const handleClearNotes = useCallback(() => {
-    if (notes.trim() && !window.confirm('Are you sure you want to clear all notes?')) {
+    if (notes.trim() && !window.confirm('Are you sure you want to clear all notes? This action cannot be undone.')) {
       return;
     }
     clearNotes();
@@ -124,18 +146,31 @@ const LivestreamNotes = forwardRef(({
   
   const characterCount = notes.length;
   const characterLimitWarning = characterCount > maxLength * 0.9;
-  
+  const characterLimitReached = characterCount >= maxLength;
+
+  const formatTimeSinceSave = useCallback((timestamp) => {
+    if (!timestamp) return null;
+    
+    const now = new Date();
+    const saved = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - saved) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  }, []);
+
   return (
     <div 
-      className={`control-panel notes-panel ${isExpanded ? 'expanded' : ''} ${showNotes ? 'visible' : ''}`}
+      className={`livestream-notes ${isExpanded ? 'expanded' : ''} ${showNotes ? 'visible' : ''} ${className}`}
       ref={ref}
       role="region"
       aria-labelledby="notes-panel-title"
     >
-      <div className="panel-header">
-        <h3 id="notes-panel-title">
-          <FaStickyNote className="panel-icon" />
-          Livestream Notes
+      <div className="notes-header">
+        <div className="notes-title">
+          <FaStickyNote className="notes-icon" />
+          <h3 id="notes-panel-title">Livestream Notes</h3>
           {hasUnsavedChanges && (
             <span 
               className="unsaved-indicator" 
@@ -145,23 +180,24 @@ const LivestreamNotes = forwardRef(({
               •
             </span>
           )}
-        </h3>
+        </div>
         
-        <div className="panel-controls">
+        <div className="notes-controls">
           {/* Character count */}
           {showNotes && (
-            <span 
-              className={`character-count ${characterLimitWarning ? 'warning' : ''}`}
+            <div 
+              className={`character-count ${characterLimitWarning ? 'warning' : ''} ${characterLimitReached ? 'error' : ''}`}
               aria-label={`${characterCount} characters of ${maxLength} maximum`}
             >
               {characterCount}/{maxLength}
-            </span>
+              {characterLimitReached && <FaExclamationTriangle className="limit-icon" />}
+            </div>
           )}
 
           {/* Expand toggle */}
           <button
             onClick={handleToggleExpand}
-            className="icon-button"
+            className="notes-control-btn"
             aria-label={isExpanded ? 'Collapse notes panel' : 'Expand notes panel'}
             title={isExpanded ? 'Collapse' : 'Expand'}
           >
@@ -171,7 +207,7 @@ const LivestreamNotes = forwardRef(({
           {/* Main toggle */}
           <button
             onClick={() => setShowNotes(!showNotes)}
-            className={`toggle-btn ${showNotes ? 'active' : ''}`}
+            className={`notes-toggle-btn ${showNotes ? 'active' : ''}`}
             aria-expanded={showNotes}
             aria-controls="notes-content"
           >
@@ -181,57 +217,75 @@ const LivestreamNotes = forwardRef(({
       </div>
 
       {showNotes && (
-        <div id="notes-content" className="panel-content">
+        <div id="notes-content" className="notes-content">
           {/* Notes textarea */}
           <div className="notes-input-container">
             <textarea
               value={notes}
               onChange={handleTextChange}
-              placeholder="Type notes to display during livestream... You can use markdown-style formatting for emphasis."
+              placeholder="Type your livestream notes here... You can use markdown-style formatting for emphasis.
+
+**Bold text** for important points
+*Italic text* for quotes or scripture
+- Bullet points for lists
+# Headings for sections"
               className="notes-textarea"
-              rows={isExpanded ? 12 : 6}
+              rows={isExpanded ? 15 : 8}
               maxLength={maxLength}
               aria-label="Livestream notes"
+              aria-describedby="character-count-display"
             />
             
-            {/* Character limit warning */}
-            {characterLimitWarning && (
-              <div className="character-warning" role="alert">
-                Approaching character limit ({Math.round((characterCount / maxLength) * 100)}%)
-              </div>
-            )}
+            {/* Character limit warnings */}
+            <div id="character-count-display" className="character-display">
+              {characterLimitReached && (
+                <div className="character-warning error" role="alert">
+                  <FaExclamationTriangle />
+                  Character limit reached
+                </div>
+              )}
+              {characterLimitWarning && !characterLimitReached && (
+                <div className="character-warning warning" role="alert">
+                  <FaExclamationTriangle />
+                  Approaching character limit ({Math.round((characterCount / maxLength) * 100)}%)
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Action buttons */}
           <div className="notes-actions">
-            <div className="notes-action-group">
+            <div className="notes-buttons">
               <button
                 onClick={copyNotes}
-                className="btn btn-outline-secondary"
+                className={`notes-btn copy-btn ${copySuccess ? 'success' : ''}`}
                 disabled={!notes.trim()}
                 aria-label="Copy notes to clipboard"
               >
-                <FaCopy /> Copy
+                {copySuccess ? <FaCheck /> : <FaCopy />}
+                {copySuccess ? 'Copied!' : 'Copy'}
               </button>
               
               {!autoSave && (
                 <button
                   onClick={saveNotes}
-                  className="btn btn-outline-primary"
+                  className="notes-btn save-btn"
                   disabled={!hasUnsavedChanges}
-                  aria-label="Save notes"
+                  aria-label="Save notes manually"
                 >
-                  <FaSave /> Save
+                  <FaSave />
+                  Save
                 </button>
               )}
               
               <button
                 onClick={handleClearNotes}
-                className="btn btn-outline-danger"
+                className="notes-btn clear-btn"
                 disabled={!notes.trim()}
                 aria-label="Clear all notes"
               >
-                <FaTrash /> Clear
+                <FaTrash />
+                Clear
               </button>
             </div>
 
@@ -242,25 +296,42 @@ const LivestreamNotes = forwardRef(({
                   className="save-time"
                   title={`Last saved: ${new Date(lastSaved).toLocaleString()}`}
                 >
-                  Saved {new Date(lastSaved).toLocaleTimeString()}
+                  Saved {formatTimeSinceSave(lastSaved)}
                 </span>
               )}
               {hasUnsavedChanges && (
-                <span className="unsaved-text">Unsaved changes</span>
+                <span className="unsaved-text" aria-live="polite">
+                  Unsaved changes
+                </span>
               )}
             </div>
           </div>
 
           {/* Formatting tips */}
           <div className="formatting-tips">
-            <details>
-              <summary>Formatting Tips</summary>
-              <ul>
-                <li>**Bold text** - Use for emphasis</li>
-                <li>*Italic text* - Use for quotes or scripture</li>
-                <li>--- - Horizontal line for separation</li>
-                <li># Heading - For section titles</li>
-              </ul>
+            <details className="tips-details">
+              <summary className="tips-summary">
+                Formatting Tips
+              </summary>
+              <div className="tips-content">
+                <div className="tip-group">
+                  <h4>Text Formatting</h4>
+                  <ul>
+                    <li><code>**Bold text**</code> - Use for emphasis</li>
+                    <li><code>*Italic text*</code> - Use for quotes or scripture</li>
+                    <li><code>~~Strikethrough~~</code> - For removed content</li>
+                  </ul>
+                </div>
+                <div className="tip-group">
+                  <h4>Structure</h4>
+                  <ul>
+                    <li><code># Heading</code> - For section titles</li>
+                    <li><code>- Item</code> - For bullet points</li>
+                    <li><code>1. Item</code> - For numbered lists</li>
+                    <li><code>---</code> - Horizontal line for separation</li>
+                  </ul>
+                </div>
+              </div>
             </details>
           </div>
         </div>
@@ -275,12 +346,14 @@ LivestreamNotes.propTypes = {
   notes: PropTypes.string.isRequired,
   updateBroadcast: PropTypes.func.isRequired,
   maxLength: PropTypes.number,
-  autoSave: PropTypes.bool
+  autoSave: PropTypes.bool,
+  className: PropTypes.string
 };
 
 LivestreamNotes.defaultProps = {
   maxLength: 5000,
-  autoSave: true
+  autoSave: true,
+  className: ''
 };
 
 LivestreamNotes.displayName = 'LivestreamNotes';
