@@ -2,10 +2,6 @@
  * Comprehensive error tracking and monitoring setup
  */
 
-import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
-import { Integrations } from '@sentry/react';
-
 // Error boundary for React components
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -27,15 +23,35 @@ export class ErrorBoundary extends React.Component {
       errorInfo
     });
 
-    // Log to Sentry
-    Sentry.withScope(scope => {
-      scope.setExtras(errorInfo);
-      Sentry.captureException(error);
-    });
+    // Log to console
+    console.error('Error caught by boundary:', error, errorInfo);
+    
+    // You can add custom error reporting here
+    // For example, send to your own API
+    this.reportToCustomService(error, errorInfo);
+  }
 
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error caught by boundary:', error, errorInfo);
+  reportToCustomService = async (error, errorInfo) => {
+    try {
+      // Example: Send error to your custom logging service
+      if (process.env.NODE_ENV === 'production') {
+        await fetch('/api/log-error', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            error: error?.toString(),
+            stack: error?.stack,
+            componentStack: errorInfo?.componentStack,
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString(),
+          }),
+        });
+      }
+    } catch (reportError) {
+      console.warn('Failed to report error:', reportError);
     }
   }
 
@@ -43,18 +59,39 @@ export class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return this.props.fallback || (
         <div className="error-boundary">
-          <h2>Something went wrong</h2>
-          <p>We're sorry for the inconvenience. Please try refreshing the page.</p>
-          {process.env.NODE_ENV === 'development' && (
-            <details>
-              <summary>Error Details (Development)</summary>
-              <pre>{this.state.error?.toString()}</pre>
-              <pre>{this.state.errorInfo?.componentStack}</pre>
-            </details>
-          )}
-          <button onClick={() => window.location.reload()}>
-            Reload Page
-          </button>
+          <div className="error-content">
+            <h2>Something went wrong</h2>
+            <p>We're sorry for the inconvenience. Please try refreshing the page.</p>
+            
+            {process.env.NODE_ENV === 'development' && (
+              <details className="error-details">
+                <summary>Error Details (Development)</summary>
+                <div className="error-stack">
+                  <strong>Error:</strong>
+                  <pre>{this.state.error?.toString()}</pre>
+                </div>
+                <div className="error-stack">
+                  <strong>Component Stack:</strong>
+                  <pre>{this.state.errorInfo?.componentStack}</pre>
+                </div>
+              </details>
+            )}
+            
+            <div className="error-actions">
+              <button 
+                className="reload-btn"
+                onClick={() => window.location.reload()}
+              >
+                Reload Page
+              </button>
+              <button 
+                className="home-btn"
+                onClick={() => window.location.href = '/'}
+              >
+                Go to Homepage
+              </button>
+            </div>
+          </div>
         </div>
       );
     }
@@ -65,152 +102,173 @@ export class ErrorBoundary extends React.Component {
 
 // Initialize error tracking
 export const initErrorTracking = () => {
-  // Only initialize in production
   if (process.env.NODE_ENV !== 'production') {
-    console.log('Error tracking disabled in development');
+    console.log('Error tracking initialized in development mode');
     return;
   }
 
-  if (!process.env.REACT_APP_SENTRY_DSN) {
-    console.warn('Sentry DSN not configured');
-    return;
-  }
-
-  try {
-    Sentry.init({
-      dsn: process.env.REACT_APP_SENTRY_DSN,
-      integrations: [
-        new BrowserTracing({
-          tracingOrigins: [
-            'localhost',
-            'heavenlynatureministry.netlify.app',
-            'heavenlynatureministry.com'
-          ],
-          routingInstrumentation: Sentry.reactRouterV6Instrumentation,
-        }),
-        new Integrations.Breadcrumbs({
-          console: true,
-          dom: true,
-          fetch: true,
-          history: true,
-          sentry: true,
-          xhr: true,
-        })
-      ],
-      
-      // Set traces sample rate
-      tracesSampleRate: parseFloat(process.env.REACT_APP_SENTRY_TRACES_SAMPLE_RATE) || 0.1,
-      
-      // Set profiles sample rate
-      profilesSampleRate: parseFloat(process.env.REACT_APP_SENTRY_PROFILES_SAMPLE_RATE) || 0.1,
-
-      // Environment configuration
-      environment: process.env.NODE_ENV,
-      release: process.env.REACT_APP_VERSION || '1.0.0',
-      
-      // Before send callback to filter sensitive data
-      beforeSend(event) {
-        // Filter out sensitive information
-        if (event.request) {
-          // Remove sensitive headers
-          if (event.request.headers) {
-            const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
-            sensitiveHeaders.forEach(header => {
-              delete event.request.headers[header];
-            });
-          }
-
-          // Filter URL parameters
-          if (event.request.url) {
-            event.request.url = event.request.url.replace(
-              /(password|token|secret|key)=[^&]+/g, 
-              '$1=***'
-            );
-          }
-        }
-
-        // Filter breadcrumbs
-        if (event.breadcrumbs) {
-          event.breadcrumbs = event.breadcrumbs.filter(breadcrumb => {
-            // Remove breadcrumbs containing sensitive data
-            const sensitiveMessages = ['password', 'token', 'secret'];
-            return !sensitiveMessages.some(sensitive => 
-              breadcrumb.message?.toLowerCase().includes(sensitive)
-            );
-          });
-        }
-
-        return event;
-      },
-
-      // Ignore specific errors
-      ignoreErrors: [
-        'ResizeObserver loop limit exceeded',
-        'Loading chunk',
-        'NetworkError',
-        /^Canceled$/,
-      ],
-
-      // Deny URLs (browser extensions, etc.)
-      denyUrls: [
-        /extensions\//i,
-        /^chrome:\/\//i,
-        /^chrome-extension:\/\//i,
-      ],
-    });
-
-    console.log('Error tracking initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize error tracking:', error);
-  }
+  console.log('Error tracking initialized in production mode');
+  
+  // You can add custom error tracking initialization here
+  // For example, initialize your own error logging service
 };
 
 // Custom error reporting function
 export const reportError = (error, context = {}) => {
-  const errorId = Sentry.captureException(error, {
-    contexts: {
-      custom: context
-    }
+  const errorId = Math.random().toString(36).substr(2, 9);
+  
+  console.error('Error reported:', {
+    errorId,
+    error: error?.toString(),
+    stack: error?.stack,
+    context,
+    timestamp: new Date().toISOString(),
+    url: window.location.href,
   });
 
-  // Log to console in development
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Error reported:', error, context);
+  // Send to custom logging service in production
+  if (process.env.NODE_ENV === 'production') {
+    this.sendToLoggingService({
+      errorId,
+      error: error?.toString(),
+      stack: error?.stack,
+      context,
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+    });
   }
 
   return errorId;
 };
 
+// Send error to custom logging service
+export const sendToLoggingService = async (errorData) => {
+  try {
+    const response = await fetch('/api/log-error', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(errorData),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.warn('Failed to send error to logging service:', error);
+    return null;
+  }
+};
+
 // User feedback component
 export const showErrorFeedback = (errorId) => {
-  Sentry.showReportDialog({
-    eventId: errorId,
-    title: 'Sorry for the inconvenience!',
-    subtitle: 'Our team has been notified.',
-    subtitle2: 'If you\'d like to help, tell us what happened below.',
-    labelName: 'Name',
-    labelEmail: 'Email',
-    labelComments: 'What happened?',
-    labelClose: 'Close',
-    labelSubmit: 'Submit',
-    errorGeneric: 'An unknown error occurred while submitting your report. Please try again.',
-    errorFormEntry: 'Some fields were invalid. Please correct the errors and try again.',
-    successMessage: 'Your feedback has been sent. Thank you!',
-  });
+  // Simple feedback mechanism - you can enhance this
+  const userFeedback = prompt(
+    `We encountered an error (ID: ${errorId}). Would you like to tell us what happened?`,
+    ''
+  );
+  
+  if (userFeedback) {
+    // Send feedback to your API
+    fetch('/api/error-feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        errorId,
+        feedback: userFeedback,
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch(console.warn);
+  }
 };
 
-// Performance monitoring
+// Performance monitoring (simplified)
 export const startTransaction = (name, op = 'navigation') => {
-  return Sentry.startTransaction({
+  const startTime = performance.now();
+  const transactionId = Math.random().toString(36).substr(2, 9);
+  
+  console.log(`Transaction started: ${name} (${op})`, { transactionId });
+  
+  return {
+    id: transactionId,
     name,
     op,
-  });
+    startTime,
+    finish: () => {
+      const duration = performance.now() - startTime;
+      console.log(`Transaction finished: ${name} - ${duration.toFixed(2)}ms`, { transactionId });
+      
+      // Log performance data in production
+      if (process.env.NODE_ENV === 'production') {
+        fetch('/api/performance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            transactionId,
+            name,
+            op,
+            duration,
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(console.warn);
+      }
+    },
+    setTag: (key, value) => {
+      console.log(`Transaction tag set: ${key}=${value}`, { transactionId });
+    },
+    setData: (key, value) => {
+      console.log(`Transaction data set: ${key}`, { transactionId, value });
+    },
+  };
 };
 
-export default {
+// Global error handler
+export const setupGlobalErrorHandling = () => {
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    
+    reportError(event.reason, {
+      type: 'unhandledrejection',
+      promise: event.promise.toString(),
+    });
+    
+    // Prevent browser's default error handling
+    event.preventDefault();
+  });
+
+  // Handle uncaught errors
+  window.addEventListener('error', (event) => {
+    console.error('Uncaught error:', event.error);
+    
+    reportError(event.error, {
+      type: 'uncaught',
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+    });
+  });
+
+  console.log('Global error handling setup complete');
+};
+
+// Error tracking utilities
+export const ErrorTracking = {
   initErrorTracking,
   ErrorBoundary,
   reportError,
   showErrorFeedback,
-  startTransaction
+  startTransaction,
+  setupGlobalErrorHandling,
+  sendToLoggingService,
 };
+
+export default ErrorTracking;
