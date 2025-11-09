@@ -1,3 +1,4 @@
+// src/utils/authHeader.jsx
 export function authHeader() {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   
