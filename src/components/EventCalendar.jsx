@@ -1,23 +1,40 @@
+// src/components/EventCalendar.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import PropTypes from 'prop-types';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import bootstrap5Plugin from '@fullcalendar/bootstrap5';
-import { Modal, Button, Form, Spinner, Alert, Badge } from 'react-bootstrap';
 import { 
   FaCalendarPlus, 
   FaEdit, 
   FaTrash, 
   FaSyncAlt,
-  FaExclamationTriangle,
-  FaInfoCircle
+  FaInfoCircle,
+  FaMapMarkerAlt,
+  FaUser
 } from 'react-icons/fa';
-import api from '../../services/api';
-import ErrorMessage from '../ErrorMessage';
-import LoadingSpinner from '../LoadingSpinner';
-import './EventCalendar.css';
+import { 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
+  Button, 
+  TextField, 
+  FormControl, 
+  InputLabel, 
+  Select, 
+  MenuItem, 
+  FormControlLabel, 
+  Checkbox, 
+  CircularProgress,
+  Alert,
+  Chip,
+  Box,
+  Typography
+} from '@mui/material';
+import { eventService } from '../services/eventService';
+import ErrorMessage from './ErrorMessage';
+import LoadingSpinner from './LoadingSpinner';
 
 // Constants
 const CALENDAR_VIEWS = {
@@ -79,23 +96,20 @@ const useEventManager = () => {
     updateState({ loading: true, error: null });
     
     try {
-      const response = await api.get('/events', {
-        timeout: 10000,
-        params: {
-          _: Date.now() // Cache busting
-        }
-      });
+      const eventsData = await eventService.getEvents();
       
-      const processedEvents = response.data.map(event => ({
+      const processedEvents = eventsData.map(event => ({
         ...event,
         id: String(event.id),
-        start: event.start,
-        end: event.end,
+        start: event.date,
+        end: event.endDate || event.date,
+        title: event.title,
         extendedProps: {
           description: event.description || '',
           category: event.category || EVENT_CATEGORIES.DEFAULT,
           location: event.location || '',
-          contact: event.contact || ''
+          contact: event.contact || '',
+          time: event.time || ''
         },
         ...CATEGORY_CONFIG[event.category || EVENT_CATEGORIES.DEFAULT]
       }));
@@ -107,11 +121,8 @@ const useEventManager = () => {
       });
     } catch (err) {
       console.error('Failed to fetch events:', err);
-      const errorMessage = err.response?.data?.message || 
-                          err.message || 
-                          'Failed to load events. Please check your connection.';
       updateState({ 
-        error: errorMessage, 
+        error: err.message || 'Failed to load events', 
         loading: false 
       });
     }
@@ -119,30 +130,27 @@ const useEventManager = () => {
 
   const createEvent = useCallback(async (eventData) => {
     try {
-      const response = await api.post('/events', {
-        ...eventData,
-        category: eventData.category || EVENT_CATEGORIES.DEFAULT
-      });
-      return response.data;
+      const newEvent = await eventService.createEvent(eventData);
+      return newEvent;
     } catch (err) {
-      throw new Error(err.response?.data?.message || 'Failed to create event');
+      throw new Error(err.message || 'Failed to create event');
     }
   }, []);
 
   const updateEvent = useCallback(async (eventId, eventData) => {
     try {
-      const response = await api.put(`/events/${eventId}`, eventData);
-      return response.data;
+      const updatedEvent = await eventService.updateEvent(eventId, eventData);
+      return updatedEvent;
     } catch (err) {
-      throw new Error(err.response?.data?.message || 'Failed to update event');
+      throw new Error(err.message || 'Failed to update event');
     }
   }, []);
 
   const deleteEvent = useCallback(async (eventId) => {
     try {
-      await api.delete(`/events/${eventId}`);
+      await eventService.deleteEvent(eventId);
     } catch (err) {
-      throw new Error(err.response?.data?.message || 'Failed to delete event');
+      throw new Error(err.message || 'Failed to delete event');
     }
   }, []);
 
@@ -164,9 +172,8 @@ const useEventModal = () => {
     isSubmitting: false,
     formData: {
       title: '',
-      start: '',
-      end: '',
-      allDay: true,
+      date: '',
+      time: '',
       description: '',
       category: EVENT_CATEGORIES.DEFAULT,
       location: '',
@@ -180,16 +187,14 @@ const useEventModal = () => {
 
   const openCreateModal = useCallback((dateInfo) => {
     const startDate = dateInfo.dateStr;
-    const endDate = dateInfo.allDay ? startDate : new Date(dateInfo.date.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16);
     
     updateState({
       showModal: true,
       selectedEvent: null,
       formData: {
         title: '',
-        start: startDate,
-        end: endDate,
-        allDay: dateInfo.allDay,
+        date: startDate,
+        time: '10:00',
         description: '',
         category: EVENT_CATEGORIES.DEFAULT,
         location: '',
@@ -205,9 +210,8 @@ const useEventModal = () => {
       selectedEvent: event,
       formData: {
         title: event.title,
-        start: event.startStr,
-        end: event.endStr,
-        allDay: event.allDay,
+        date: event.startStr.split('T')[0],
+        time: event.startStr.includes('T') ? event.startStr.split('T')[1].substring(0, 5) : '10:00',
         description: event.extendedProps.description || '',
         category: event.extendedProps.category || EVENT_CATEGORIES.DEFAULT,
         location: event.extendedProps.location || '',
@@ -240,7 +244,7 @@ const useEventModal = () => {
   };
 };
 
-const EventCalendar = () => {
+const EventCalendar = ({ compact = false, showRegisterButton = false, userId = null, mode = 'public' }) => {
   const {
     events,
     loading,
@@ -271,17 +275,19 @@ const EventCalendar = () => {
 
   // Event handlers
   const handleDateClick = useCallback((arg) => {
-    openCreateModal(arg);
-  }, [openCreateModal]);
+    if (mode === 'admin') {
+      openCreateModal(arg);
+    }
+  }, [openCreateModal, mode]);
 
   const handleEventClick = useCallback((info) => {
     openEditModal(info);
   }, [openEditModal]);
 
   const handleInputChange = useCallback((e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     updateFormData({
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     });
   }, [updateFormData]);
 
@@ -289,19 +295,29 @@ const EventCalendar = () => {
     updateState({ isSubmitting: true });
     
     try {
+      const eventData = {
+        title: formData.title,
+        date: formData.date,
+        time: formData.time,
+        description: formData.description,
+        category: formData.category,
+        location: formData.location,
+        contact: formData.contact
+      };
+
       let savedEvent;
       
       if (selectedEvent) {
-        savedEvent = await updateEvent(selectedEvent.id, formData);
+        savedEvent = await updateEvent(selectedEvent.id, eventData);
         updateState(prev => ({
           events: prev.events.map(event => 
-            event.id === selectedEvent.id ? savedEvent : event
+            event.id === selectedEvent.id ? { ...savedEvent, ...CATEGORY_CONFIG[savedEvent.category] } : event
           )
         }));
       } else {
-        savedEvent = await createEvent(formData);
+        savedEvent = await createEvent(eventData);
         updateState(prev => ({
-          events: [...prev.events, savedEvent]
+          events: [...prev.events, { ...savedEvent, ...CATEGORY_CONFIG[savedEvent.category] }]
         }));
       }
       
@@ -345,78 +361,91 @@ const EventCalendar = () => {
 
   // Memoized calendar configuration
   const calendarConfig = useMemo(() => ({
-    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin, bootstrap5Plugin],
-    initialView: CALENDAR_VIEWS.MONTH,
-    headerToolbar: {
+    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+    initialView: compact ? 'listWeek' : CALENDAR_VIEWS.MONTH,
+    headerToolbar: compact ? false : {
       left: 'prev,next today',
       center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
     events,
-    dateClick: handleDateClick,
-    eventClick: handleEventClick,
-    editable: true,
-    selectable: true,
+    dateClick: mode === 'admin' ? handleDateClick : undefined,
+    eventClick: mode === 'admin' ? handleEventClick : undefined,
+    editable: mode === 'admin',
+    selectable: mode === 'admin',
     nowIndicator: true,
     eventDisplay: 'block',
-    height: 'auto',
-    themeSystem: 'bootstrap5',
+    height: compact ? '400px' : 'auto',
     eventTimeFormat: {
       hour: '2-digit',
       minute: '2-digit',
       meridiem: 'short'
     },
-    slotMinTime: '06:00:00',
-    slotMaxTime: '22:00:00',
-    businessHours: {
-      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-      startTime: '08:00',
-      endTime: '20:00',
+    views: {
+      listWeek: {
+        type: 'list',
+        duration: { weeks: 1 },
+        buttonText: 'list'
+      }
     }
-  }), [events, handleDateClick, handleEventClick]);
+  }), [events, handleDateClick, handleEventClick, compact, mode]);
 
   // Custom event content renderer
   const renderEventContent = useCallback((eventInfo) => (
     <div className="event-content">
       <div className="event-title">{eventInfo.event.title}</div>
-      {eventInfo.event.extendedProps.description && (
-        <div className="event-description">
-          {eventInfo.event.extendedProps.description}
-        </div>
-      )}
-      {eventInfo.event.extendedProps.location && (
+      {!compact && eventInfo.event.extendedProps.location && (
         <div className="event-location">
-          <FaInfoCircle /> {eventInfo.event.extendedProps.location}
+          <FaMapMarkerAlt size={10} /> {eventInfo.event.extendedProps.location}
         </div>
       )}
     </div>
-  ), []);
+  ), [compact]);
 
   // Form validation
-  const isFormValid = formData.title.trim() && formData.start;
+  const isFormValid = formData.title.trim() && formData.date;
+
+  if (compact) {
+    return (
+      <Box className="event-calendar-compact">
+        {loading ? (
+          <LoadingSpinner size="small" message="Loading events..." />
+        ) : (
+          <FullCalendar
+            {...calendarConfig}
+            eventContent={renderEventContent}
+          />
+        )}
+      </Box>
+    );
+  }
 
   return (
-    <div className="calendar-container">
+    <Box className="calendar-container">
       {/* Header with controls */}
-      <div className="calendar-header">
-        <h2>Ministry Events Calendar</h2>
-        <div className="calendar-controls">
+      <Box className="calendar-header" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4" component="h2">
+          Ministry Events Calendar
+        </Typography>
+        <Box className="calendar-controls" sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           {lastUpdated && (
-            <Badge bg="light" text="dark" className="last-updated">
-              Updated: {new Date(lastUpdated).toLocaleTimeString()}
-            </Badge>
+            <Chip 
+              label={`Updated: ${new Date(lastUpdated).toLocaleTimeString()}`}
+              variant="outlined"
+              size="small"
+            />
           )}
           <Button 
-            variant="outline-primary" 
-            size="sm" 
+            variant="outlined" 
+            size="small" 
             onClick={handleRefresh}
             disabled={loading}
+            startIcon={<FaSyncAlt />}
           >
-            <FaSyncAlt className={loading ? 'spinning' : ''} />
             Refresh
           </Button>
-        </div>
-      </div>
+        </Box>
+      </Box>
 
       {/* Error Display */}
       {error && (
@@ -430,201 +459,163 @@ const EventCalendar = () => {
 
       {/* Loading State */}
       {loading && !events.length ? (
-        <div className="calendar-loading">
+        <Box className="calendar-loading" sx={{ textAlign: 'center', py: 4 }}>
           <LoadingSpinner size="large" />
-          <p>Loading ministry events...</p>
-        </div>
+          <Typography variant="body1" sx={{ mt: 2 }}>
+            Loading ministry events...
+          </Typography>
+        </Box>
       ) : (
         <>
           {/* Calendar Component */}
-          <div className="calendar-wrapper">
+          <Box className="calendar-wrapper">
             <FullCalendar
               {...calendarConfig}
               eventContent={renderEventContent}
-              loading={(isLoading) => {
-                if (isLoading && events.length > 0) {
-                  updateState({ loading: true });
-                }
-              }}
             />
-          </div>
+          </Box>
 
           {/* Events Summary */}
           {events.length > 0 && (
-            <div className="events-summary">
-              <small>
+            <Box className="events-summary" sx={{ mt: 2, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
                 Showing {events.length} event{events.length !== 1 ? 's' : ''}
-              </small>
-            </div>
+              </Typography>
+            </Box>
           )}
         </>
       )}
 
-      {/* Event Modal */}
-      <Modal 
-        show={showModal} 
-        onHide={closeModal}
-        size="lg"
-        backdrop="static"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>
+      {/* Event Modal - Only for admin mode */}
+      {mode === 'admin' && (
+        <Dialog 
+          open={showModal} 
+          onClose={closeModal}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
             {selectedEvent ? 'Edit Event' : 'Create New Event'}
-          </Modal.Title>
-        </Modal.Header>
-        
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Event Title *</Form.Label>
-              <Form.Control
-                type="text"
+          </DialogTitle>
+          
+          <DialogContent>
+            <Box component="form" sx={{ mt: 1 }}>
+              <TextField
+                margin="normal"
+                fullWidth
+                label="Event Title"
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                placeholder="Enter event title"
                 required
                 disabled={isSubmitting}
               />
-            </Form.Group>
 
-            <div className="row">
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>Start Date/Time *</Form.Label>
-                  <Form.Control
-                    type="datetime-local"
-                    name="start"
-                    value={formData.start}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isSubmitting}
-                  />
-                </Form.Group>
-              </div>
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>End Date/Time *</Form.Label>
-                  <Form.Control
-                    type="datetime-local"
-                    name="end"
-                    value={formData.end}
-                    onChange={handleInputChange}
-                    required
-                    disabled={isSubmitting}
-                  />
-                </Form.Group>
-              </div>
-            </div>
+              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Date"
+                  name="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isSubmitting}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  fullWidth
+                  label="Time"
+                  name="time"
+                  type="time"
+                  value={formData.time}
+                  onChange={handleInputChange}
+                  disabled={isSubmitting}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
 
-            <div className="row">
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Label>Category</Form.Label>
-                  <Form.Select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                  >
-                    <option value={EVENT_CATEGORIES.SERVICE}>Service</option>
-                    <option value={EVENT_CATEGORIES.MEETING}>Meeting</option>
-                    <option value={EVENT_CATEGORIES.OUTREACH}>Outreach</option>
-                    <option value={EVENT_CATEGORIES.SPECIAL}>Special Event</option>
-                    <option value={EVENT_CATEGORIES.DEFAULT}>Other</option>
-                  </Form.Select>
-                </Form.Group>
-              </div>
-              <div className="col-md-6">
-                <Form.Group className="mb-3">
-                  <Form.Check
-                    type="checkbox"
-                    name="allDay"
-                    label="All Day Event"
-                    checked={formData.allDay}
-                    onChange={handleInputChange}
-                    disabled={isSubmitting}
-                  />
-                </Form.Group>
-              </div>
-            </div>
+              <FormControl fullWidth margin="normal">
+                <InputLabel>Category</InputLabel>
+                <Select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  label="Category"
+                  disabled={isSubmitting}
+                >
+                  <MenuItem value={EVENT_CATEGORIES.SERVICE}>Service</MenuItem>
+                  <MenuItem value={EVENT_CATEGORIES.MEETING}>Meeting</MenuItem>
+                  <MenuItem value={EVENT_CATEGORIES.OUTREACH}>Outreach</MenuItem>
+                  <MenuItem value={EVENT_CATEGORIES.SPECIAL}>Special Event</MenuItem>
+                  <MenuItem value={EVENT_CATEGORIES.DEFAULT}>Other</MenuItem>
+                </Select>
+              </FormControl>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Location</Form.Label>
-              <Form.Control
-                type="text"
+              <TextField
+                margin="normal"
+                fullWidth
+                label="Location"
                 name="location"
                 value={formData.location}
                 onChange={handleInputChange}
-                placeholder="Event location"
                 disabled={isSubmitting}
               />
-            </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Contact Information</Form.Label>
-              <Form.Control
-                type="text"
+              <TextField
+                margin="normal"
+                fullWidth
+                label="Contact Information"
                 name="contact"
                 value={formData.contact}
                 onChange={handleInputChange}
-                placeholder="Contact person or phone"
                 disabled={isSubmitting}
               />
-            </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
+              <TextField
+                margin="normal"
+                fullWidth
+                multiline
                 rows={3}
+                label="Description"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Event details and notes"
                 disabled={isSubmitting}
               />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        
-        <Modal.Footer>
-          {selectedEvent && (
+            </Box>
+          </DialogContent>
+          
+          <DialogActions>
+            {selectedEvent && (
+              <Button 
+                onClick={handleDeleteEvent}
+                disabled={isSubmitting}
+                color="error"
+                startIcon={<FaTrash />}
+              >
+                Delete Event
+              </Button>
+            )}
             <Button 
-              variant="outline-danger" 
-              onClick={handleDeleteEvent}
+              onClick={closeModal}
               disabled={isSubmitting}
             >
-              <FaTrash /> Delete Event
+              Cancel
             </Button>
-          )}
-          <Button 
-            variant="primary" 
-            onClick={handleSaveEvent}
-            disabled={isSubmitting || !isFormValid}
-          >
-            {isSubmitting ? (
-              <>
-                <Spinner animation="border" size="sm" /> Saving...
-              </>
-            ) : selectedEvent ? (
-              <>
-                <FaEdit /> Update Event
-              </>
-            ) : (
-              <>
-                <FaCalendarPlus /> Create Event
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+            <Button 
+              onClick={handleSaveEvent}
+              disabled={isSubmitting || !isFormValid}
+              variant="contained"
+              startIcon={isSubmitting ? <CircularProgress size={16} /> : selectedEvent ? <FaEdit /> : <FaCalendarPlus />}
+            >
+              {isSubmitting ? 'Saving...' : selectedEvent ? 'Update Event' : 'Create Event'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </Box>
   );
-};
-
-EventCalendar.propTypes = {
-  // Add any props if needed
 };
 
 export default EventCalendar;
