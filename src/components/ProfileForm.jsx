@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fa';
 import { updateUserProfile } from '../../services/userService';
 import { toast } from 'react-toastify';
-import './ProfileForm.css';
+import '../css/ProfileForm.css';
 
 // Validation constants
 const VALIDATION_RULES = {
