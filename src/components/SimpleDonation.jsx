@@ -11,7 +11,7 @@ import {
   FaInfoCircle
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import './SimpleDonation.css';
+import '../css/SimpleDonation.css';
 
 // Constants
 const PRESET_AMOUNTS = [25, 50, 100, 250, 500];
