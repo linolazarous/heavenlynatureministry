@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { ChromePicker } from 'react-color';
 import { 
@@ -7,7 +7,8 @@ import {
   FaEyeSlash,
   FaUndo,
   FaSave,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaCheckCircle
 } from 'react-icons/fa';
 import { debounce } from 'lodash';
 import './LowerThirdGenerator.css';
@@ -21,7 +22,10 @@ const PRESET_COLORS = [
   '#27ae60', // Green
   '#f39c12', // Orange
   '#8e44ad', // Purple
-  '#2c3e50'  // Dark gray
+  '#2c3e50', // Dark gray
+  '#16a085', // Teal
+  '#c0392b', // Dark red
+  '#2980b9'  // Bright blue
 ];
 
 // Custom hook for lower third management
@@ -36,7 +40,8 @@ const useLowerThirdManager = (initialLowerThird, updateBroadcast) => {
     },
     isColorPickerOpen: false,
     hasUnsavedChanges: false,
-    lastSaved: null
+    lastSaved: null,
+    showSuccess: false
   });
 
   const updateState = useCallback((updates) => {
@@ -44,13 +49,19 @@ const useLowerThirdManager = (initialLowerThird, updateBroadcast) => {
   }, []);
 
   // Debounced broadcast update
-  const debouncedUpdate = useCallback(
-    debounce((lowerThirdData) => {
+  const debouncedUpdate = useMemo(
+    () => debounce((lowerThirdData) => {
       updateBroadcast({ lowerThird: lowerThirdData });
       updateState({ 
         hasUnsavedChanges: false,
-        lastSaved: new Date().toISOString()
+        lastSaved: new Date().toISOString(),
+        showSuccess: true
       });
+      
+      // Hide success message after 2 seconds
+      setTimeout(() => {
+        updateState({ showSuccess: false });
+      }, 2000);
     }, 500),
     [updateBroadcast, updateState]
   );
@@ -101,6 +112,13 @@ const useLowerThirdManager = (initialLowerThird, updateBroadcast) => {
     }));
   }, [updateState]);
 
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedUpdate.cancel();
+    };
+  }, [debouncedUpdate]);
+
   return {
     ...state,
     updateLowerThird,
@@ -115,13 +133,16 @@ const useLowerThirdManager = (initialLowerThird, updateBroadcast) => {
 const LowerThirdGenerator = ({
   lowerThird: externalLowerThird,
   updateBroadcast,
-  className = ''
+  className = '',
+  showLowerThird: externalShowLowerThird,
+  hideLowerThird: externalHideLowerThird
 }) => {
   const {
     lowerThird,
     isColorPickerOpen,
     hasUnsavedChanges,
     lastSaved,
+    showSuccess,
     updateLowerThird,
     showLowerThird,
     hideLowerThird,
@@ -133,7 +154,7 @@ const LowerThirdGenerator = ({
   const colorPickerRef = useRef(null);
 
   // Close color picker when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (colorPickerRef.current && !colorPickerRef.current.contains(event.target)) {
         updateState({ isColorPickerOpen: false });
@@ -148,6 +169,27 @@ const LowerThirdGenerator = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isColorPickerOpen, updateState]);
+
+  // Use external show/hide functions if provided
+  const handleShowLowerThird = useCallback(() => {
+    try {
+      if (externalShowLowerThird) {
+        externalShowLowerThird();
+      } else {
+        showLowerThird();
+      }
+    } catch (error) {
+      console.error('Failed to show lower third:', error);
+    }
+  }, [externalShowLowerThird, showLowerThird]);
+
+  const handleHideLowerThird = useCallback(() => {
+    if (externalHideLowerThird) {
+      externalHideLowerThird();
+    } else {
+      hideLowerThird();
+    }
+  }, [externalHideLowerThird, hideLowerThird]);
 
   // Input handlers
   const handleInputChange = useCallback((e) => {
@@ -164,15 +206,6 @@ const LowerThirdGenerator = ({
     updateState({ isColorPickerOpen: false });
   }, [updateLowerThird, updateState]);
 
-  const handleShowLowerThird = useCallback(() => {
-    try {
-      showLowerThird();
-    } catch (error) {
-      console.error('Failed to show lower third:', error);
-      // You could show a toast here: toast.error(error.message);
-    }
-  }, [showLowerThird]);
-
   const handleReset = useCallback(() => {
     if (hasUnsavedChanges && !window.confirm('Are you sure you want to reset? Unsaved changes will be lost.')) {
       return;
@@ -187,27 +220,42 @@ const LowerThirdGenerator = ({
     subtitle: lowerThird.subtitle.length
   };
 
+  const titleWarning = characterCount.title > 40;
+  const subtitleWarning = characterCount.subtitle > 70;
+
   // Memoized preset colors
   const presetColorButtons = useMemo(() => 
     PRESET_COLORS.map(color => (
       <button
         key={color}
         type="button"
-        className="color-preset"
+        className={`color-preset ${lowerThird.color === color ? 'active' : ''}`}
         style={{ backgroundColor: color }}
         onClick={() => handlePresetColor(color)}
         aria-label={`Select color ${color}`}
         title={color}
       />
-    )), [handlePresetColor]
+    )), [lowerThird.color, handlePresetColor]
   );
 
+  const formatTimeSinceSave = useCallback((timestamp) => {
+    if (!timestamp) return null;
+    
+    const now = new Date();
+    const saved = new Date(timestamp);
+    const diffInSeconds = Math.floor((now - saved) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  }, []);
+
   return (
-    <div className={`control-panel lower-third-panel ${className}`}>
-      <div className="panel-header">
-        <h3>
-          <FaPalette className="panel-icon" />
-          Lower Third Generator
+    <div className={`lower-third-generator ${className}`}>
+      <div className="generator-header">
+        <div className="header-title">
+          <FaPalette className="header-icon" />
+          <h3>Lower Third Generator</h3>
           {hasUnsavedChanges && (
             <span 
               className="unsaved-indicator" 
@@ -217,10 +265,18 @@ const LowerThirdGenerator = ({
               •
             </span>
           )}
-        </h3>
+        </div>
       </div>
 
-      <div className="panel-content">
+      <div className="generator-content">
+        {/* Success Message */}
+        {showSuccess && (
+          <div className="success-message" role="alert">
+            <FaCheckCircle />
+            Changes saved successfully!
+          </div>
+        )}
+
         {/* Title Input */}
         <div className="form-group">
           <label htmlFor="lower-third-title" className="required">
@@ -234,12 +290,13 @@ const LowerThirdGenerator = ({
             onChange={handleInputChange}
             placeholder="Speaker name or title"
             maxLength={50}
-            className={characterCount.title > 40 ? 'warning' : ''}
+            className={titleWarning ? 'input-warning' : ''}
             aria-required="true"
+            aria-describedby="title-count"
           />
-          <div className="character-count">
+          <div id="title-count" className="character-count">
             {characterCount.title}/50
-            {characterCount.title > 40 && (
+            {titleWarning && (
               <FaExclamationTriangle className="warning-icon" title="Approaching character limit" />
             )}
           </div>
@@ -258,17 +315,18 @@ const LowerThirdGenerator = ({
             onChange={handleInputChange}
             placeholder="Position or scripture reference"
             maxLength={80}
-            className={characterCount.subtitle > 70 ? 'warning' : ''}
+            className={subtitleWarning ? 'input-warning' : ''}
+            aria-describedby="subtitle-count"
           />
-          <div className="character-count">
+          <div id="subtitle-count" className="character-count">
             {characterCount.subtitle}/80
-            {characterCount.subtitle > 70 && (
+            {subtitleWarning && (
               <FaExclamationTriangle className="warning-icon" title="Approaching character limit" />
             )}
           </div>
         </div>
 
-        {/* Color Picker */}
+        {/* Color Picker Section */}
         <div className="form-group">
           <label>Background Color</label>
           
@@ -280,10 +338,10 @@ const LowerThirdGenerator = ({
           {/* Custom Color Picker */}
           <div className="color-picker-container" ref={colorPickerRef}>
             <div className="color-picker-header">
-              <span>Custom Color</span>
+              <span className="color-picker-label">Custom Color</span>
               <button
                 type="button"
-                className="color-picker-toggle"
+                className={`color-picker-toggle ${isColorPickerOpen ? 'active' : ''}`}
                 onClick={toggleColorPicker}
                 aria-expanded={isColorPickerOpen}
                 aria-label={isColorPickerOpen ? 'Close color picker' : 'Open color picker'}
@@ -296,9 +354,17 @@ const LowerThirdGenerator = ({
               className="color-preview"
               style={{ backgroundColor: lowerThird.color }}
               onClick={toggleColorPicker}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleColorPicker();
+                }
+              }}
               aria-label={`Current color: ${lowerThird.color}. Click to change.`}
             >
-              <span className="color-value">{lowerThird.color}</span>
+              <span className="color-value">{lowerThird.color.toUpperCase()}</span>
             </div>
 
             {isColorPickerOpen && (
@@ -309,22 +375,24 @@ const LowerThirdGenerator = ({
                   disableAlpha
                   presetColors={[]}
                 />
-                <button 
-                  className="btn btn-sm btn-outline-secondary"
-                  onClick={toggleColorPicker}
-                >
-                  Close Picker
-                </button>
+                <div className="color-picker-actions">
+                  <button 
+                    className="btn btn-sm btn-secondary"
+                    onClick={toggleColorPicker}
+                  >
+                    Close Picker
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="button-group">
+        <div className="action-buttons">
           <div className="primary-actions">
             <button
-              className="btn btn-primary"
+              className="btn btn-primary show-btn"
               onClick={handleShowLowerThird}
               disabled={!isFormValid || lowerThird.visible}
               aria-label="Show lower third on stream"
@@ -333,8 +401,8 @@ const LowerThirdGenerator = ({
             </button>
             
             <button
-              className="btn btn-secondary"
-              onClick={hideLowerThird}
+              className="btn btn-secondary hide-btn"
+              onClick={handleHideLowerThird}
               disabled={!lowerThird.visible}
               aria-label="Hide lower third from stream"
             >
@@ -344,9 +412,9 @@ const LowerThirdGenerator = ({
 
           <div className="secondary-actions">
             <button
-              className="btn btn-outline-secondary"
+              className="btn btn-outline reset-btn"
               onClick={handleReset}
-              disabled={!lowerThird.title && !lowerThird.subtitle}
+              disabled={!lowerThird.title && !lowerThird.subtitle && lowerThird.color === DEFAULT_COLOR}
               aria-label="Reset form"
             >
               <FaUndo /> Reset
@@ -358,7 +426,7 @@ const LowerThirdGenerator = ({
         <div className="status-info">
           {lastSaved && (
             <div className="save-time">
-              <FaSave /> Last saved: {new Date(lastSaved).toLocaleTimeString()}
+              <FaSave /> Last saved: {formatTimeSinceSave(lastSaved)}
             </div>
           )}
           {lowerThird.visible && (
@@ -371,17 +439,21 @@ const LowerThirdGenerator = ({
         {/* Preview */}
         {(lowerThird.title || lowerThird.subtitle) && (
           <div className="preview-section">
-            <h4>Preview</h4>
+            <h4 className="preview-title">Preview</h4>
             <div 
               className="lower-third-preview"
               style={{ backgroundColor: lowerThird.color }}
+              aria-label="Lower third preview"
             >
               <div className="preview-content">
-                <div className="preview-title">{lowerThird.title || 'Title'}</div>
+                <div className="preview-title-text">{lowerThird.title || 'Title'}</div>
                 {lowerThird.subtitle && (
-                  <div className="preview-subtitle">{lowerThird.subtitle}</div>
+                  <div className="preview-subtitle-text">{lowerThird.subtitle}</div>
                 )}
               </div>
+            </div>
+            <div className="preview-note">
+              This is how your lower third will appear on the stream
             </div>
           </div>
         )}
@@ -398,7 +470,9 @@ LowerThirdGenerator.propTypes = {
     color: PropTypes.string
   }),
   updateBroadcast: PropTypes.func.isRequired,
-  className: PropTypes.string
+  className: PropTypes.string,
+  showLowerThird: PropTypes.func,
+  hideLowerThird: PropTypes.func
 };
 
 LowerThirdGenerator.defaultProps = {
@@ -408,7 +482,9 @@ LowerThirdGenerator.defaultProps = {
     subtitle: '',
     color: '#1a4b8c'
   },
-  className: ''
+  className: '',
+  showLowerThird: null,
+  hideLowerThird: null
 };
 
 export default LowerThirdGenerator;
