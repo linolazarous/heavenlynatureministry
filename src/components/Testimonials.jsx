@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { 
   FaQuoteLeft, 
@@ -6,9 +6,10 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaPause,
-  FaPlay
+  FaPlay,
+  FaStar
 } from 'react-icons/fa';
-import '../css/Testimonials.css';
+import './Testimonials.css';
 
 // Testimonials data
 const TESTIMONIALS_DATA = [
@@ -18,7 +19,8 @@ const TESTIMONIALS_DATA = [
     author: "Mary K.",
     role: "Ministry Partner",
     location: "Juba, South Sudan",
-    date: "2024-01-15"
+    date: "2024-01-15",
+    rating: 5
   },
   {
     id: 2,
@@ -26,7 +28,8 @@ const TESTIMONIALS_DATA = [
     author: "James L.",
     role: "Parent",
     location: "Gudele, Juba",
-    date: "2024-02-20"
+    date: "2024-02-20",
+    rating: 5
   },
   {
     id: 3,
@@ -34,7 +37,26 @@ const TESTIMONIALS_DATA = [
     author: "Sarah M.",
     role: "Volunteer Leader",
     location: "Juba Town",
-    date: "2024-03-10"
+    date: "2024-03-10",
+    rating: 5
+  },
+  {
+    id: 4,
+    quote: "The worship services have been a source of strength and encouragement. I've grown spiritually and found a community that feels like family.",
+    author: "David P.",
+    role: "Church Member",
+    location: "Munuki, Juba",
+    date: "2024-03-25",
+    rating: 5
+  },
+  {
+    id: 5,
+    quote: "As a youth, this ministry provided me with guidance and direction. The mentorship program helped me navigate life's challenges with faith.",
+    author: "Grace A.",
+    role: "Youth Member",
+    location: "Juba",
+    date: "2024-04-05",
+    rating: 5
   }
 ];
 
@@ -44,7 +66,8 @@ const useTestimonialsCarousel = (testimonials, autoPlay = true, interval = 8000)
     currentIndex: 0,
     isPlaying: autoPlay,
     direction: 'next',
-    isTransitioning: false
+    isTransitioning: false,
+    touchStartX: 0
   });
 
   const updateState = useCallback((updates) => {
@@ -67,7 +90,7 @@ const useTestimonialsCarousel = (testimonials, autoPlay = true, interval = 8000)
         currentIndex: newIndex,
         isTransitioning: false
       });
-    }, 300);
+    }, 500);
   }, [state.isTransitioning, updateState]);
 
   const nextTestimonial = useCallback(() => {
@@ -94,6 +117,29 @@ const useTestimonialsCarousel = (testimonials, autoPlay = true, interval = 8000)
     }));
   }, [updateState]);
 
+  // Touch handlers for mobile swipe
+  const handleTouchStart = useCallback((e) => {
+    updateState({ touchStartX: e.touches[0].clientX });
+  }, [updateState]);
+
+  const handleTouchEnd = useCallback((e) => {
+    if (!state.touchStartX) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = state.touchStartX - touchEndX;
+
+    // Minimum swipe distance
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        nextTestimonial();
+      } else {
+        prevTestimonial();
+      }
+    }
+
+    updateState({ touchStartX: 0 });
+  }, [state.touchStartX, nextTestimonial, prevTestimonial, updateState]);
+
   // Auto-play effect
   useEffect(() => {
     if (!state.isPlaying || totalTestimonials <= 1) return;
@@ -109,8 +155,30 @@ const useTestimonialsCarousel = (testimonials, autoPlay = true, interval = 8000)
     nextTestimonial,
     prevTestimonial,
     goToTestimonial,
-    toggleAutoPlay
+    toggleAutoPlay,
+    handleTouchStart,
+    handleTouchEnd
   };
+};
+
+// Star Rating Component
+const StarRating = ({ rating, maxRating = 5 }) => {
+  return (
+    <div className="star-rating" aria-label={`Rating: ${rating} out of ${maxRating} stars`}>
+      {[...Array(maxRating)].map((_, index) => (
+        <FaStar
+          key={index}
+          className={`star ${index < rating ? 'filled' : 'empty'}`}
+          aria-hidden="true"
+        />
+      ))}
+    </div>
+  );
+};
+
+StarRating.propTypes = {
+  rating: PropTypes.number.isRequired,
+  maxRating: PropTypes.number
 };
 
 const Testimonials = ({ 
@@ -119,7 +187,9 @@ const Testimonials = ({
   interval = 8000,
   showNavigation = true,
   showControls = true,
-  className = ''
+  showRating = true,
+  className = '',
+  title = "What People Are Saying"
 }) => {
   const {
     currentIndex,
@@ -130,8 +200,12 @@ const Testimonials = ({
     nextTestimonial,
     prevTestimonial,
     goToTestimonial,
-    toggleAutoPlay
+    toggleAutoPlay,
+    handleTouchStart,
+    handleTouchEnd
   } = useTestimonialsCarousel(testimonials, autoPlay, interval);
+
+  const containerRef = useRef(null);
 
   const currentTestimonial = useMemo(() => 
     testimonials[currentIndex],
@@ -153,41 +227,71 @@ const Testimonials = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [prevTestimonial, nextTestimonial, toggleAutoPlay]);
 
+  // Format date
+  const formatDate = useCallback((dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }, []);
+
   if (!testimonials || testimonials.length === 0) {
     return (
-      <div className={`testimonials empty ${className}`}>
-        <p>No testimonials available at this time.</p>
-      </div>
+      <section className={`testimonials empty ${className}`}>
+        <div className="testimonials-container">
+          <h2 className="testimonials-title">{title}</h2>
+          <p className="no-testimonials">No testimonials available at this time.</p>
+        </div>
+      </section>
     );
   }
 
   return (
     <section 
-      className={`testimonials ${className} ${isTransitioning ? 'transitioning' : ''}`}
+      className={`testimonials ${className}`}
       aria-label="Testimonials"
+      ref={containerRef}
     >
       <div className="testimonials-container">
-        {/* Testimonial Content */}
+        <h2 className="testimonials-title">{title}</h2>
+        
         <div 
-          className={`testimonial-content ${direction}`}
-          key={currentTestimonial.id}
+          className={`testimonial-content ${direction} ${isTransitioning ? 'transitioning' : ''}`}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          role="region"
+          aria-live="polite"
+          aria-atomic="true"
         >
           <div className="quote-decoration">
             <FaQuoteLeft className="quote-icon start" aria-hidden="true" />
           </div>
           
           <blockquote className="testimonial">
-            <p className="quote-text" aria-live="polite">
-              {currentTestimonial.quote}
-            </p>
+            <div className="testimonial-body">
+              {showRating && currentTestimonial.rating && (
+                <StarRating rating={currentTestimonial.rating} />
+              )}
+              
+              <p className="quote-text">
+                {currentTestimonial.quote}
+              </p>
+            </div>
             
             <footer className="testimonial-footer">
               <cite className="testimonial-cite">
                 <span className="author">{currentTestimonial.author}</span>
-                <span className="role">{currentTestimonial.role}</span>
-                {currentTestimonial.location && (
-                  <span className="location">{currentTestimonial.location}</span>
-                )}
+                <div className="cite-details">
+                  <span className="role">{currentTestimonial.role}</span>
+                  {currentTestimonial.location && (
+                    <span className="location">{currentTestimonial.location}</span>
+                  )}
+                  {currentTestimonial.date && (
+                    <span className="date">{formatDate(currentTestimonial.date)}</span>
+                  )}
+                </div>
               </cite>
             </footer>
           </blockquote>
@@ -197,62 +301,65 @@ const Testimonials = ({
           </div>
         </div>
 
-        {/* Navigation Controls */}
-        {showControls && totalTestimonials > 1 && (
-          <div className="testimonial-controls">
-            <button
-              className="control-btn prev-btn"
-              onClick={prevTestimonial}
-              aria-label="Previous testimonial"
-              disabled={isTransitioning}
-            >
-              <FaChevronLeft aria-hidden="true" />
-            </button>
+        {/* Controls Container */}
+        {(showControls || showNavigation) && totalTestimonials > 1 && (
+          <div className="testimonials-controls-container">
+            {/* Navigation Controls */}
+            {showControls && (
+              <div className="testimonial-controls">
+                <button
+                  className="control-btn prev-btn"
+                  onClick={prevTestimonial}
+                  aria-label="Previous testimonial"
+                  disabled={isTransitioning}
+                >
+                  <FaChevronLeft aria-hidden="true" />
+                </button>
 
-            <button
-              className={`control-btn play-pause-btn ${isPlaying ? 'playing' : 'paused'}`}
-              onClick={toggleAutoPlay}
-              aria-label={isPlaying ? 'Pause testimonials' : 'Play testimonials'}
-            >
-              {isPlaying ? <FaPause aria-hidden="true" /> : <FaPlay aria-hidden="true" />}
-            </button>
+                <button
+                  className={`control-btn play-pause-btn ${isPlaying ? 'playing' : 'paused'}`}
+                  onClick={toggleAutoPlay}
+                  aria-label={isPlaying ? 'Pause testimonials' : 'Play testimonials'}
+                >
+                  {isPlaying ? <FaPause aria-hidden="true" /> : <FaPlay aria-hidden="true" />}
+                </button>
 
-            <button
-              className="control-btn next-btn"
-              onClick={nextTestimonial}
-              aria-label="Next testimonial"
-              disabled={isTransitioning}
-            >
-              <FaChevronRight aria-hidden="true" />
-            </button>
-          </div>
-        )}
+                <button
+                  className="control-btn next-btn"
+                  onClick={nextTestimonial}
+                  aria-label="Next testimonial"
+                  disabled={isTransitioning}
+                >
+                  <FaChevronRight aria-hidden="true" />
+                </button>
+              </div>
+            )}
 
-        {/* Navigation Dots */}
-        {showNavigation && totalTestimonials > 1 && (
-          <div 
-            className="testimonial-nav"
-            role="tablist"
-            aria-label="Testimonial navigation"
-          >
-            {testimonials.map((_, index) => (
-              <button
-                key={index}
-                className={`nav-dot ${index === currentIndex ? 'active' : ''}`}
-                onClick={() => goToTestimonial(index)}
-                aria-label={`View testimonial ${index + 1}`}
-                aria-selected={index === currentIndex}
-                role="tab"
-                disabled={isTransitioning}
-              />
-            ))}
-          </div>
-        )}
+            {/* Navigation Dots */}
+            {showNavigation && (
+              <div 
+                className="testimonial-nav"
+                role="tablist"
+                aria-label="Testimonial navigation"
+              >
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`nav-dot ${index === currentIndex ? 'active' : ''}`}
+                    onClick={() => goToTestimonial(index)}
+                    aria-label={`View testimonial ${index + 1} of ${totalTestimonials}`}
+                    aria-selected={index === currentIndex}
+                    role="tab"
+                    disabled={isTransitioning}
+                  />
+                ))}
+              </div>
+            )}
 
-        {/* Testimonial Counter */}
-        {totalTestimonials > 1 && (
-          <div className="testimonial-counter" aria-live="polite">
-            {currentIndex + 1} of {totalTestimonials}
+            {/* Testimonial Counter */}
+            <div className="testimonial-counter" aria-live="polite">
+              {currentIndex + 1} / {totalTestimonials}
+            </div>
           </div>
         )}
       </div>
@@ -268,14 +375,17 @@ Testimonials.propTypes = {
       author: PropTypes.string.isRequired,
       role: PropTypes.string,
       location: PropTypes.string,
-      date: PropTypes.string
+      date: PropTypes.string,
+      rating: PropTypes.number
     })
   ),
   autoPlay: PropTypes.bool,
   interval: PropTypes.number,
   showNavigation: PropTypes.bool,
   showControls: PropTypes.bool,
-  className: PropTypes.string
+  showRating: PropTypes.bool,
+  className: PropTypes.string,
+  title: PropTypes.string
 };
 
 Testimonials.defaultProps = {
@@ -284,7 +394,9 @@ Testimonials.defaultProps = {
   interval: 8000,
   showNavigation: true,
   showControls: true,
-  className: ''
+  showRating: true,
+  className: '',
+  title: "What People Are Saying"
 };
 
 export default Testimonials;
