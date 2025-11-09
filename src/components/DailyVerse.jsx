@@ -1,6 +1,6 @@
 // heavenlynatureministry/components/DailyVerse.jsx
 import React, { useState, useEffect } from "react";
-import { getDailyVerse } from "../services/bibleService";
+import { getDailyVerse } from "../services/BibleAPI.jsx";
 
 const DailyVerse = React.memo(() => {
   const [verse, setVerse] = useState(null);
