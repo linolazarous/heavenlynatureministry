@@ -10,7 +10,7 @@ import {
   FaCopy,
   FaExpand
 } from 'react-icons/fa';
-import './ErrorMessage.css';
+import '../css/ErrorMessage.css';
 
 // Error severity types and configurations
 const SEVERITY_CONFIG = {
