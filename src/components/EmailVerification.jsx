@@ -9,10 +9,9 @@ import {
   FaEnvelope,
   FaClock
 } from 'react-icons/fa';
-import { sendVerificationEmail, checkVerificationStatus } from '../../services/userService';
-import useInterval from '../../hooks/useInterval';
 import { toast } from 'react-toastify';
-import './EmailVerification.css';
+import useInterval from '../hooks/useInterval.jsx';
+import '../css/EmailVerification.css';
 
 // Constants
 const VERIFICATION_CHECK_INTERVAL = 30000; // 30 seconds
@@ -29,6 +28,34 @@ const ERROR_MESSAGES = {
 const SUCCESS_MESSAGES = {
   EMAIL_SENT: 'Verification email sent successfully!',
   VERIFIED: 'Email verified successfully!',
+};
+
+// Mock services (replace with actual implementations)
+const sendVerificationEmail = async (userId) => {
+  // Replace with actual API call
+  const response = await fetch(`/api/users/${userId}/send-verification`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to send verification email');
+  }
+  
+  return response.json();
+};
+
+const checkVerificationStatus = async (userId) => {
+  // Replace with actual API call
+  const response = await fetch(`/api/users/${userId}/verification-status`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to check verification status');
+  }
+  
+  return response.json();
 };
 
 // Custom hook for verification state
@@ -50,7 +77,7 @@ const useVerificationState = (user, onVerified) => {
   return { ...state, updateState };
 };
 
-const EmailVerification = ({ user, onVerified }) => {
+const EmailVerification = ({ user, onVerified, className = '' }) => {
   const {
     isLoading,
     error,
@@ -66,7 +93,7 @@ const EmailVerification = ({ user, onVerified }) => {
   const checkVerification = useCallback(async () => {
     if (user.emailVerified || isChecking) return;
 
-    updateState({ isChecking: true });
+    updateState({ isChecking: true, error: null });
 
     try {
       const updatedUser = await checkVerificationStatus(user.id);
@@ -88,7 +115,6 @@ const EmailVerification = ({ user, onVerified }) => {
         });
       } else {
         updateState(prev => ({ 
-          ...prev, 
           retryCount: prev.retryCount + 1 
         }));
       }
@@ -128,7 +154,7 @@ const EmailVerification = ({ user, onVerified }) => {
     } catch (err) {
       console.error('Failed to send verification email:', err);
       
-      const errorMessage = err.response?.data?.message || ERROR_MESSAGES.SEND_FAILED;
+      const errorMessage = err.message || ERROR_MESSAGES.SEND_FAILED;
       updateState({ error: errorMessage });
       
       toast.error(errorMessage);
@@ -143,7 +169,6 @@ const EmailVerification = ({ user, onVerified }) => {
 
     const timer = setTimeout(() => {
       updateState(prev => ({ 
-        ...prev, 
         countdown: prev.countdown - 1 
       }));
     }, 1000);
@@ -161,7 +186,7 @@ const EmailVerification = ({ user, onVerified }) => {
 
   if (user.emailVerified) {
     return (
-      <div className="email-verification verified" role="status">
+      <div className={`email-verification verified ${className}`} role="status">
         <div className="verification-header">
           <h3>
             <FaCheckCircle className="icon verified-icon" aria-hidden="true" />
@@ -183,7 +208,7 @@ const EmailVerification = ({ user, onVerified }) => {
   }
 
   return (
-    <div className="email-verification unverified" role="alert">
+    <div className={`email-verification unverified ${className}`} role="alert">
       <div className="verification-header">
         <h3>
           <FaTimesCircle className="icon unverified-icon" aria-hidden="true" />
@@ -284,6 +309,12 @@ EmailVerification.propTypes = {
     emailVerified: PropTypes.bool.isRequired,
   }).isRequired,
   onVerified: PropTypes.func,
+  className: PropTypes.string,
+};
+
+EmailVerification.defaultProps = {
+  onVerified: null,
+  className: '',
 };
 
 export default EmailVerification;
