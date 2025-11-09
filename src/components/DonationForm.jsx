@@ -1,466 +1,461 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import PropTypes from 'prop-types';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { 
-  FaLock, 
-  FaDonate, 
-  FaSpinner, 
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaShieldAlt
-} from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import './DonationForm.css';
-
-// Error boundaries and constants
-const ERROR_MESSAGES = {
-  PAYMENT_FAILED: 'Payment failed. Please try again or use a different payment method.',
-  NETWORK_ERROR: 'Network error. Please check your connection and try again.',
-  INVALID_AMOUNT: 'Please enter a valid donation amount ($5 minimum).',
-  STRIPE_NOT_LOADED: 'Payment system is initializing. Please wait...',
-};
-
-const PRESET_AMOUNTS = [25, 50, 100, 250, 500];
-const MIN_DONATION_AMOUNT = 5;
-const MAX_DONATION_AMOUNT = 10000;
-
-// Initialize Stripe with error handling
-let stripePromise;
-try {
-  stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY, {
-    locale: 'en',
-  });
-} catch (error) {
-  console.error('Failed to initialize Stripe:', error);
+.donation-form-wrapper {
+  max-width: 500px;
+  margin: 0 auto;
 }
 
-// Custom hook for donation form state
-const useDonationForm = () => {
-  const [state, setState] = useState({
-    amount: 25,
-    donationType: 'one-time',
-    name: '',
-    email: '',
-    isLoading: false,
-    error: null,
-    clientSecret: null,
-    isProcessing: false,
-  });
+.donation-form-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e1e5e9;
+  transition: all 0.3s ease;
+}
 
-  const updateState = useCallback((updates) => {
-    setState(prev => ({ ...prev, ...updates }));
-  }, []);
+.donation-form-container:hover {
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+}
 
-  return { ...state, updateState };
-};
+/* Header */
+.donation-header {
+  background: linear-gradient(135deg, #1a4b8c 0%, #2c5aa0 100%);
+  color: white;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  position: relative;
+}
 
-// Payment intent hook
-const usePaymentIntent = (amount, donationType, name, email) => {
-  const [clientSecret, setClientSecret] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+.header-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+}
 
-  useEffect(() => {
-    let isMounted = true;
+.donation-header h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
 
-    const createPaymentIntent = async () => {
-      if (amount < MIN_DONATION_AMOUNT) {
-        setClientSecret(null);
-        return;
-      }
+.donation-header p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
 
-      setLoading(true);
-      setError(null);
+/* Form */
+.donation-form {
+  padding: 2rem;
+}
 
-      try {
-        const response = await fetch('/.netlify/functions/create-payment-intent', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            amount: Math.round(amount * 100), // Convert to cents
-            currency: 'usd',
-            metadata: {
-              donationType,
-              name: name.trim(),
-              email: email.trim().toLowerCase(),
-              timestamp: new Date().toISOString(),
-            },
-          }),
-        });
+.form-group {
+  margin-bottom: 1.75rem;
+}
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+.form-label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+}
 
-        const data = await response.json();
-        
-        if (isMounted && data.clientSecret) {
-          setClientSecret(data.clientSecret);
-        } else {
-          throw new Error('Invalid response from server');
-        }
-      } catch (err) {
-        console.error('Payment intent creation failed:', err);
-        if (isMounted) {
-          setError(ERROR_MESSAGES.NETWORK_ERROR);
-          setClientSecret(null);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
+/* Donation Type Toggle */
+.donation-type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 0.25rem;
+}
 
-    // Debounce payment intent creation
-    const timeoutId = setTimeout(createPaymentIntent, 500);
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [amount, donationType, name, email]);
+.type-option {
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
 
-  return { clientSecret, loading, error };
-};
+.type-option:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: #374151;
+}
 
-const CheckoutForm = ({ onSuccess }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const navigate = useNavigate();
-  
-  const {
-    amount,
-    donationType,
-    name,
-    email,
-    isLoading,
-    error,
-    updateState,
-  } = useDonationForm();
+.type-option.active {
+  background: white;
+  color: #1a4b8c;
+  box-shadow: 0 2px 8px rgba(26, 75, 140, 0.2);
+}
 
-  const { clientSecret, loading: intentLoading } = usePaymentIntent(
-    amount, 
-    donationType, 
-    name, 
-    email
-  );
+/* Amount Selection */
+.amount-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
 
-  // Validation
-  const validateForm = useCallback(() => {
-    if (!name.trim()) {
-      return 'Please enter your full name';
-    }
-    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) {
-      return 'Please enter a valid email address';
-    }
-    if (amount < MIN_DONATION_AMOUNT || amount > MAX_DONATION_AMOUNT) {
-      return ERROR_MESSAGES.INVALID_AMOUNT;
-    }
-    if (!stripe || !elements) {
-      return ERROR_MESSAGES.STRIPE_NOT_LOADED;
-    }
-    return null;
-  }, [name, email, amount, stripe, elements]);
+.amount-option {
+  padding: 1rem 0.5rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  background: white;
+  color: #374151;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    const validationError = validateForm();
-    if (validationError) {
-      updateState({ error: validationError });
-      return;
-    }
+.amount-option:hover {
+  border-color: #1a4b8c;
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
 
-    updateState({ isLoading: true, error: null });
+.amount-option.active {
+  border-color: #1a4b8c;
+  background: #1a4b8c;
+  color: white;
+  box-shadow: 0 4px 12px rgba(26, 75, 140, 0.3);
+}
 
-    try {
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) {
-        throw new Error('Card element not found');
-      }
+/* Custom Amount */
+.custom-amount {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
 
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: {
-            name: name.trim(),
-            email: email.trim().toLowerCase(),
-            address: {
-              country: 'US', // Default, can be made dynamic
-            },
-          },
-        },
-        receipt_email: email.trim().toLowerCase(),
-      });
+.currency-symbol {
+  position: absolute;
+  left: 1rem;
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 1.1rem;
+  z-index: 2;
+}
 
-      if (stripeError) {
-        throw stripeError;
-      }
+#custom-amount-input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 2.5rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  background: white;
+  transition: all 0.2s ease;
+  text-align: center;
+}
 
-      if (paymentIntent.status === 'succeeded') {
-        // Analytics tracking
-        if (window.gtag) {
-          window.gtag('event', 'donation', {
-            event_category: 'donation',
-            event_label: donationType,
-            value: amount,
-            currency: 'USD',
-            transaction_id: paymentIntent.id,
-          });
-        }
+#custom-amount-input:focus {
+  outline: none;
+  border-color: #1a4b8c;
+  box-shadow: 0 0 0 3px rgba(26, 75, 140, 0.1);
+}
 
-        // Success handling
-        toast.success(`Thank you for your $${amount} donation!`);
-        
-        if (onSuccess) {
-          onSuccess(paymentIntent, { amount, donationType, name, email });
-        } else {
-          navigate('/donation-success', {
-            state: {
-              amount,
-              donationType,
-              receiptUrl: paymentIntent.receipt_url,
-              transactionId: paymentIntent.id,
-              timestamp: new Date().toISOString(),
-            },
-            replace: true,
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Payment processing error:', err);
-      const errorMessage = err.message?.includes('card_declined') 
-        ? 'Your card was declined. Please try a different card.'
-        : err.message || ERROR_MESSAGES.PAYMENT_FAILED;
-      
-      updateState({ error: errorMessage });
-      toast.error(errorMessage);
-    } finally {
-      updateState({ isLoading: false });
-    }
-  };
+.amount-info {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-align: center;
+  font-weight: 500;
+}
 
-  const handleAmountChange = useCallback((newAmount) => {
-    const validAmount = Math.max(MIN_DONATION_AMOUNT, Math.min(MAX_DONATION_AMOUNT, newAmount));
-    updateState({ amount: validAmount, error: null });
-  }, [updateState]);
+/* Form Inputs */
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  font-size: 1rem;
+  color: #374151;
+  background: white;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
 
-  const handlePresetAmount = useCallback((presetAmount) => {
-    handleAmountChange(presetAmount);
-  }, [handleAmountChange]);
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #1a4b8c;
+  box-shadow: 0 0 0 3px rgba(26, 75, 140, 0.1);
+}
 
-  const isSubmitDisabled = !stripe || isLoading || intentLoading || !clientSecret;
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #9ca3af;
+}
 
-  return (
-    <div className="donation-form-container">
-      <div className="donation-header">
-        <h2>
-          <FaDonate /> Support Our Ministry
-        </h2>
-        <p>Your generous gift helps us continue our mission in South Sudan</p>
-      </div>
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
 
-      <form onSubmit={handleSubmit} className="donation-form" noValidate>
-        {/* Donation Type */}
-        <div className="form-group">
-          <label htmlFor="donation-type">Donation Type</label>
-          <div className="donation-type-toggle" role="group" aria-labelledby="donation-type">
-            <button
-              type="button"
-              id="one-time"
-              className={donationType === 'one-time' ? 'active' : ''}
-              onClick={() => updateState({ donationType: 'one-time', error: null })}
-            >
-              One-Time
-            </button>
-            <button
-              type="button"
-              id="monthly"
-              className={donationType === 'monthly' ? 'active' : ''}
-              onClick={() => updateState({ donationType: 'monthly', error: null })}
-            >
-              Monthly
-            </button>
-          </div>
-        </div>
+/* Card Element */
+.card-element-container {
+  padding: 1rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  background: white;
+  transition: all 0.2s ease;
+}
 
-        {/* Amount Selection */}
-        <div className="form-group">
-          <label htmlFor="donation-amount">Donation Amount (USD)</label>
-          <div className="amount-buttons" role="group" aria-labelledby="donation-amount">
-            {PRESET_AMOUNTS.map((amt) => (
-              <button
-                type="button"
-                key={amt}
-                className={amount === amt ? 'active' : ''}
-                onClick={() => handlePresetAmount(amt)}
-                aria-pressed={amount === amt}
-              >
-                ${amt}
-              </button>
-            ))}
-          </div>
-          <div className="custom-amount">
-            <span>$</span>
-            <input
-              type="number"
-              min={MIN_DONATION_AMOUNT}
-              max={MAX_DONATION_AMOUNT}
-              step="1"
-              value={amount}
-              onChange={(e) => handleAmountChange(parseInt(e.target.value) || MIN_DONATION_AMOUNT)}
-              onBlur={(e) => {
-                const value = parseInt(e.target.value) || MIN_DONATION_AMOUNT;
-                handleAmountChange(value);
-              }}
-              placeholder="Other amount"
-              aria-label="Custom donation amount"
-            />
-          </div>
-          <div className="amount-info">
-            Minimum donation: ${MIN_DONATION_AMOUNT}
-          </div>
-        </div>
+.card-element-container:focus-within {
+  border-color: #1a4b8c;
+  box-shadow: 0 0 0 3px rgba(26, 75, 140, 0.1);
+}
 
-        {/* Personal Information */}
-        <div className="form-group">
-          <label htmlFor="donor-name">Full Name *</label>
-          <input
-            id="donor-name"
-            type="text"
-            value={name}
-            onChange={(e) => updateState({ name: e.target.value, error: null })}
-            required
-            aria-required="true"
-            placeholder="Enter your full name"
-          />
-        </div>
+/* Error Message */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 1rem 0;
+}
 
-        <div className="form-group">
-          <label htmlFor="donor-email">Email Address *</label>
-          <input
-            id="donor-email"
-            type="email"
-            value={email}
-            onChange={(e) => updateState({ email: e.target.value, error: null })}
-            required
-            aria-required="true"
-            placeholder="Enter your email address"
-          />
-        </div>
+.error-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
 
-        {/* Payment Details */}
-        <div className="form-group">
-          <label htmlFor="card-element">Payment Details *</label>
-          <div className="card-element-container">
-            <CardElement
-              id="card-element"
-              options={{
-                style: {
-                  base: {
-                    fontSize: '16px',
-                    color: '#424770',
-                    fontFamily: '"Poppins", sans-serif',
-                    '::placeholder': {
-                      color: '#aab7c4',
-                    },
-                    padding: '10px 12px',
-                  },
-                  invalid: {
-                    color: '#e74c3c',
-                    iconColor: '#e74c3c',
-                  },
-                },
-                hidePostalCode: true,
-              }}
-              onChange={(event) => {
-                if (event.error) {
-                  updateState({ error: event.error.message });
-                } else {
-                  updateState({ error: null });
-                }
-              }}
-            />
-          </div>
-        </div>
+/* Submit Button */
+.submit-button {
+  width: 100%;
+  padding: 1.25rem 2rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0 1rem;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  position: relative;
+  overflow: hidden;
+}
 
-        {/* Error Display */}
-        {error && (
-          <div className="error-message" role="alert">
-            <FaExclamationTriangle />
-            {error}
-          </div>
-        )}
+.submit-button:hover:not(.disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className={`submit-button ${isSubmitDisabled ? 'disabled' : ''}`}
-          disabled={isSubmitDisabled}
-          aria-busy={isLoading}
-        >
-          {isLoading ? (
-            <>
-              <FaSpinner className="spinner" aria-hidden="true" />
-              Processing Donation...
-            </>
-          ) : (
-            <>
-              <FaLock aria-hidden="true" />
-              Donate ${amount} {donationType === 'monthly' ? '/month' : ''}
-            </>
-          )}
-        </button>
+.submit-button:active:not(.disabled) {
+  transform: translateY(0);
+}
 
-        {/* Security Notice */}
-        <div className="security-notice">
-          <FaShieldAlt aria-hidden="true" />
-          <div>
-            <strong>Secure & Encrypted Payment</strong>
-            <span>Processed by Stripe • PCI DSS compliant</span>
-          </div>
-        </div>
+.submit-button.disabled,
+.submit-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 
-        {/* Loading state for payment intent */}
-        {intentLoading && (
-          <div className="loading-overlay">
-            <FaSpinner className="spinner" />
-            Preparing payment...
-          </div>
-        )}
-      </form>
-    </div>
-  );
-};
+/* Security Notice */
+.security-notice {
+  border-top: 1px solid #e1e5e9;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
 
-// Main DonationForm component with error boundary
-const DonationForm = ({ onSuccess }) => {
-  if (!stripePromise) {
-    return (
-      <div className="donation-form-container error">
-        <div className="error-message">
-          <FaExclamationTriangle />
-          Payment system is temporarily unavailable. Please try again later.
-        </div>
-      </div>
-    );
+.security-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.security-icon {
+  color: #10b981;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.security-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.security-text strong {
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.security-text span {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  color: #6b7280;
+  font-weight: 500;
+  margin: 1rem 0;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Error State */
+.donation-form-container.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.donation-form-container.error .error-message {
+  background: transparent;
+  border: none;
+  padding: 2rem;
+  text-align: center;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.donation-form-container.error .error-message div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.donation-form-container.error .error-icon {
+  font-size: 2rem;
+}
+
+/* Animations */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .donation-form-wrapper {
+    margin: 1rem;
   }
 
-  return (
-    <Elements stripe={stripePromise}>
-      <CheckoutForm onSuccess={onSuccess} />
-    </Elements>
-  );
-};
+  .donation-header {
+    padding: 2rem 1.5rem;
+  }
 
-DonationForm.propTypes = {
-  onSuccess: PropTypes.func,
-};
+  .donation-header h2 {
+    font-size: 1.5rem;
+  }
 
-CheckoutForm.propTypes = {
-  onSuccess: PropTypes.func,
-};
+  .donation-form {
+    padding: 1.5rem;
+  }
 
-export default DonationForm;
+  .amount-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .type-option {
+    padding: 0.875rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .submit-button {
+    padding: 1.125rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .donation-header {
+    padding: 1.5rem 1rem;
+  }
+
+  .donation-form {
+    padding: 1rem;
+  }
+
+  .amount-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .donation-type-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  .header-icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .donation-form-container {
+    border: 2px solid;
+  }
+
+  .form-input,
+  .form-textarea,
+  .card-element-container {
+    border: 2px solid;
+  }
+
+  .amount-option,
+  .type-option {
+    border: 2px solid;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .donation-form-container,
+  .submit-button,
+  .amount-option,
+  .type-option {
+    transition: none;
+  }
+
+  .submit-button:hover:not(.disabled) {
+    transform: none;
+  }
+
+  .amount-option:hover {
+    transform: none;
+  }
+
+  .spinner {
+    animation: none;
+  }
+}
