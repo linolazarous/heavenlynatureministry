@@ -10,7 +10,7 @@ import {
 } from 'react-icons/fa';
 import { changePassword } from '../../services/userService';
 import { toast } from 'react-toastify';
-import './PasswordForm.css';
+import '../css/PasswordForm.css';
 
 // Password validation rules
 const PASSWORD_RULES = {
