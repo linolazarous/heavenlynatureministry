@@ -16,7 +16,19 @@ const useOverlayManager = () => {
     return notes
       .split('\n')
       .filter(paragraph => paragraph.trim())
-      .map(paragraph => paragraph.trim());
+      .map(paragraph => {
+        // Simple markdown-like formatting
+        let processed = paragraph
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+          .replace(/_(.*?)_/g, '<em>$1</em>');
+        
+        return {
+          raw: paragraph,
+          processed: processed,
+          isHeading: paragraph.startsWith('#')
+        };
+      });
   }, []);
 
   const validateLowerThird = useCallback((lowerThird) => {
@@ -53,6 +65,8 @@ const useOverlayManager = () => {
       return null;
     }
 
+    if (!verseText || !verseReference) return null;
+
     return {
       text: verseText,
       reference: verseReference,
@@ -76,23 +90,22 @@ const NotesOverlay = React.memo(({ notes, showNotes }) => {
 
   return (
     <div 
-      className="overlay-notes slide-in"
+      className="overlay-section overlay-notes slide-in"
       role="region"
       aria-label="Livestream notes"
     >
-      <div className="notes-header" aria-hidden="true">
-        <FaStickyNote />
-        <span>Notes</span>
+      <div className="overlay-header" aria-hidden="true">
+        <FaStickyNote className="overlay-icon" />
+        <span className="overlay-title">Notes</span>
       </div>
-      <div className="notes-content">
+      <div className="overlay-content notes-content">
         {processedNotes.map((paragraph, i) => (
-          <p 
+          <div 
             key={i} 
-            className="notes-paragraph"
+            className={`notes-paragraph ${paragraph.isHeading ? 'heading' : ''}`}
             aria-live="polite"
-          >
-            {paragraph}
-          </p>
+            dangerouslySetInnerHTML={{ __html: paragraph.processed }}
+          />
         ))}
       </div>
     </div>
@@ -115,15 +128,15 @@ const BibleVerseOverlay = React.memo(({ bibleVerse, verseSearch, translation, sh
 
   return (
     <div 
-      className="overlay-bible fade-in"
+      className="overlay-section overlay-bible fade-in"
       role="region"
       aria-label="Bible verse"
     >
-      <div className="bible-header" aria-hidden="true">
-        <FaBible />
-        <span>Scripture</span>
+      <div className="overlay-header" aria-hidden="true">
+        <FaBible className="overlay-icon" />
+        <span className="overlay-title">Scripture</span>
       </div>
-      <div className="bible-content">
+      <div className="overlay-content bible-content">
         <blockquote className="bible-text" aria-live="polite">
           "{verseData.text}"
         </blockquote>
@@ -156,7 +169,7 @@ const LowerThirdOverlay = React.memo(({ lowerThird }) => {
 
   return (
     <div 
-      className="overlay-lower-third slide-up"
+      className="overlay-section overlay-lower-third slide-up"
       style={{ backgroundColor }}
       role="region"
       aria-label="Speaker information"
@@ -204,6 +217,7 @@ const LivestreamOverlay = ({
   verseSearch = '',
   lowerThird = {},
   className = '',
+  position = 'top-right',
   ...props
 }) => {
   // Memoized props to prevent unnecessary re-renders
@@ -220,9 +234,20 @@ const LivestreamOverlay = ({
   // Error boundary fallback
   const [hasError, setHasError] = React.useState(false);
 
+  React.useEffect(() => {
+    const handleError = (error) => {
+      console.error('Overlay error:', error);
+      setHasError(true);
+    };
+
+    // Add error event listener
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
   if (hasError) {
     return (
-      <div className="livestream-overlay error" role="alert">
+      <div className={`livestream-overlay error ${className}`} role="alert">
         <div className="overlay-error">
           <FaExclamationTriangle />
           <p>Overlay display error. Please refresh the page.</p>
@@ -233,7 +258,7 @@ const LivestreamOverlay = ({
 
   return (
     <div 
-      className={`livestream-overlay ${className}`}
+      className={`livestream-overlay ${position} ${className}`}
       role="complementary"
       aria-live="polite"
       {...props}
@@ -276,7 +301,8 @@ LivestreamOverlay.propTypes = {
     subtitle: PropTypes.string,
     color: PropTypes.string
   }),
-  className: PropTypes.string
+  className: PropTypes.string,
+  position: PropTypes.oneOf(['top-right', 'top-left', 'bottom-right', 'bottom-left'])
 };
 
 LivestreamOverlay.defaultProps = {
@@ -292,7 +318,8 @@ LivestreamOverlay.defaultProps = {
     subtitle: '',
     color: '#1a4b8c'
   },
-  className: ''
+  className: '',
+  position: 'top-right'
 };
 
 export default LivestreamOverlay;
