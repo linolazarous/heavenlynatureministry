@@ -11,7 +11,7 @@ import {
 } from 'react-icons/fa';
 
 // Components
-import DonationForm from '../components/donation/DonationForm';
+import DonationForm from '../components/DonationForm';
 import EventCalendar from '../components/EventCalendar';
 import ProfileForm from '../components/ProfileForm';
 import LoadingSpinner from '../components/LoadingSpinner';
