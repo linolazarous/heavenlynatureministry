@@ -1,16 +1,60 @@
-// src/services/auth.jsx
 import { useState, useEffect, useCallback } from 'react';
 
-// Mock authentication system (replace with your actual auth provider)
-export const initializeAuth = () => {
-  console.log('Auth system initialized');
+// Mock Magic authentication system
+export const initializeMagic = () => {
+  console.log('Magic authentication initialized');
   return {
-    currentUser: () => {
-      const userStr = localStorage.getItem('currentUser');
-      return userStr ? JSON.parse(userStr) : null;
+    user: {
+      isLoggedIn: async () => {
+        const userStr = localStorage.getItem('currentUser');
+        return !!userStr;
+      },
+      getMetadata: async () => {
+        const userStr = localStorage.getItem('currentUser');
+        return userStr ? JSON.parse(userStr) : null;
+      },
+      getIdToken: async (options = {}) => {
+        const userStr = localStorage.getItem('currentUser');
+        if (!userStr) return null;
+        
+        // Mock token generation
+        return `mock-token-${Date.now()}`;
+      },
+      logout: async () => {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('authToken');
+        return true;
+      }
+    },
+    auth: {
+      loginWithMagicLink: async ({ email, showUI = true, redirectURI }) => {
+        // Mock magic link login
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        if (email && email.includes('@')) {
+          const mockUser = {
+            id: Date.now().toString(),
+            email: email,
+            name: email.split('@')[0],
+            role: 'user',
+            createdAt: new Date().toISOString(),
+            issuer: `mock-issuer-${Date.now()}`
+          };
+          
+          localStorage.setItem('currentUser', JSON.stringify(mockUser));
+          localStorage.setItem('authToken', `mock-token-${Date.now()}`);
+          
+          return mockUser;
+        } else {
+          throw new Error('Invalid email address');
+        }
+      }
     }
   };
 };
+
+// Create and export the magic instance
+export const magic = initializeMagic();
 
 // Custom hook for authentication state
 export const useNetlifyAuth = () => {
@@ -27,6 +71,7 @@ export const useNetlifyAuth = () => {
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
     } else {
       localStorage.removeItem('currentUser');
+      localStorage.removeItem('authToken');
     }
   }, []);
 
@@ -47,19 +92,22 @@ export const useNetlifyAuth = () => {
   }, []);
 
   useEffect(() => {
-    try {
-      const identity = initializeAuth();
-
-      // Check current user
-      const currentUser = identity.currentUser();
-      if (currentUser) {
-        updateAuthState(currentUser);
-      } else {
-        setIsLoading(false);
+    const checkAuthStatus = async () => {
+      try {
+        const isLoggedIn = await magic.user.isLoggedIn();
+        
+        if (isLoggedIn) {
+          const userData = await magic.user.getMetadata();
+          updateAuthState(userData);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (err) {
+        handleError(err);
       }
-    } catch (err) {
-      handleError(err);
-    }
+    };
+
+    checkAuthStatus();
   }, [handleError, updateAuthState]);
 
   const login = useCallback(async (email, password) => {
@@ -76,8 +124,13 @@ export const useNetlifyAuth = () => {
           email: email,
           name: email.split('@')[0],
           role: 'user',
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          issuer: `mock-issuer-${Date.now()}`
         };
+        
+        localStorage.setItem('currentUser', JSON.stringify(mockUser));
+        localStorage.setItem('authToken', `mock-token-${Date.now()}`);
+        
         handleLogin(mockUser);
         return mockUser;
       } else {
@@ -104,8 +157,13 @@ export const useNetlifyAuth = () => {
           name: userData.name || email.split('@')[0],
           role: 'user',
           createdAt: new Date().toISOString(),
+          issuer: `mock-issuer-${Date.now()}`,
           ...userData
         };
+        
+        localStorage.setItem('currentUser', JSON.stringify(mockUser));
+        localStorage.setItem('authToken', `mock-token-${Date.now()}`);
+        
         handleLogin(mockUser);
         return mockUser;
       } else {
@@ -117,24 +175,39 @@ export const useNetlifyAuth = () => {
     }
   }, [handleLogin, handleError]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     setIsLoading(true);
-    handleLogout();
-    setIsLoading(false);
-  }, [handleLogout]);
+    try {
+      await magic.user.logout();
+      handleLogout();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [handleLogout, handleError]);
 
   const refreshUser = useCallback(async () => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (currentUser) {
-      updateAuthState(currentUser);
-      return { user: currentUser, token: 'mock-token' };
+    try {
+      const userData = await magic.user.getMetadata();
+      if (userData) {
+        updateAuthState(userData);
+        return { user: userData, token: await magic.user.getIdToken() };
+      }
+      return null;
+    } catch (error) {
+      handleError(error);
+      throw error;
     }
-    return null;
-  }, [updateAuthState]);
+  }, [updateAuthState, handleError]);
 
   const getToken = useCallback(async () => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    return currentUser ? 'mock-token' : null;
+    try {
+      return await magic.user.getIdToken();
+    } catch (error) {
+      console.error('Failed to get token:', error);
+      return null;
+    }
   }, []);
 
   return {
@@ -150,14 +223,14 @@ export const useNetlifyAuth = () => {
   };
 };
 
-// Mock auth instance
+// Mock auth instance for backward compatibility
 export const auth = {
   open: () => console.log('Auth modal would open here'),
   close: () => console.log('Auth modal would close here'),
   currentUser: () => JSON.parse(localStorage.getItem('currentUser') || 'null')
 };
 
-// Mock default export
+// Default export for backward compatibility
 const mockAuth = {
   init: () => console.log('Mock auth initialized'),
   open: () => console.log('Mock auth open'),
