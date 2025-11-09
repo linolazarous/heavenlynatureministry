@@ -1,0 +1,392 @@
+.livestream-overlay {
+  position: absolute;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 400px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Position variants */
+.livestream-overlay.top-right {
+  top: 20px;
+  right: 20px;
+  left: auto;
+  bottom: auto;
+}
+
+.livestream-overlay.top-left {
+  top: 20px;
+  left: 20px;
+  right: auto;
+  bottom: auto;
+}
+
+.livestream-overlay.bottom-right {
+  bottom: 20px;
+  right: 20px;
+  left: auto;
+  top: auto;
+}
+
+.livestream-overlay.bottom-left {
+  bottom: 20px;
+  left: 20px;
+  right: auto;
+  top: auto;
+}
+
+/* Base overlay section styles */
+.overlay-section {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+
+/* Common header styles */
+.overlay-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #1a4b8c;
+}
+
+.overlay-icon {
+  font-size: 1rem;
+  color: #1a4b8c;
+}
+
+.overlay-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+}
+
+/* Common content styles */
+.overlay-content {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #2d3748;
+  line-height: 1.5;
+}
+
+/* Notes Overlay */
+.overlay-notes {
+  background: rgba(255, 255, 255, 0.9);
+  max-width: 380px;
+}
+
+.notes-content {
+  font-size: 0.875rem;
+}
+
+.notes-paragraph {
+  margin: 0 0 12px 0;
+  padding: 0;
+  color: #374151;
+}
+
+.notes-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.notes-paragraph.heading {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #1a4b8c;
+  border-left: 3px solid #1a4b8c;
+  padding-left: 12px;
+  margin-left: -4px;
+}
+
+.notes-paragraph strong {
+  font-weight: 700;
+  color: #1a4b8c;
+}
+
+.notes-paragraph em {
+  font-style: italic;
+  color: #6b7280;
+}
+
+/* Bible Verse Overlay */
+.overlay-bible {
+  background: linear-gradient(135deg, rgba(255, 248, 225, 0.9) 0%, rgba(254, 243, 199, 0.9) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  max-width: 360px;
+}
+
+.bible-content {
+  background: transparent;
+  text-align: center;
+}
+
+.bible-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #78350f;
+  margin: 0 0 12px 0;
+  padding: 0;
+  font-style: normal;
+  quotes: "“" "”" "‘" "’";
+}
+
+.bible-text::before {
+  content: open-quote;
+}
+
+.bible-text::after {
+  content: close-quote;
+}
+
+.bible-reference {
+  display: block;
+  font-size: 0.875rem;
+  color: #92400e;
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* Lower Third Overlay */
+.overlay-lower-third {
+  background: #1a4b8c;
+  color: white;
+  max-width: 320px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.lower-third-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: transparent;
+}
+
+.lower-third-icon {
+  font-size: 1.5rem;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.lower-third-text {
+  flex: 1;
+}
+
+.lower-third-title {
+  margin: 0 0 4px 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: white;
+}
+
+.lower-third-subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.9;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation-name: slideIn;
+  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.fade-in {
+  animation-name: fadeIn;
+  animation-timing-function: ease-out;
+}
+
+.slide-up {
+  animation-name: slideUp;
+  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Error State */
+.livestream-overlay.error {
+  background: rgba(254, 226, 226, 0.95);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 280px;
+}
+
+.overlay-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.overlay-error svg {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .livestream-overlay {
+    max-width: 300px;
+  }
+
+  .livestream-overlay.top-right,
+  .livestream-overlay.top-left,
+  .livestream-overlay.bottom-right,
+  .livestream-overlay.bottom-left {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    bottom: auto;
+    max-width: none;
+    margin: 0 auto;
+  }
+
+  .overlay-section {
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+
+  .overlay-header {
+    padding: 10px 12px;
+    font-size: 0.75rem;
+  }
+
+  .overlay-content {
+    padding: 12px;
+  }
+
+  .overlay-notes {
+    max-width: none;
+  }
+
+  .overlay-bible {
+    max-width: none;
+  }
+
+  .bible-text {
+    font-size: 0.875rem;
+  }
+
+  .lower-third-content {
+    padding: 12px 16px;
+  }
+
+  .lower-third-title {
+    font-size: 1rem;
+  }
+
+  .lower-third-subtitle {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .livestream-overlay {
+    max-width: 280px;
+  }
+
+  .overlay-section {
+    margin-bottom: 8px;
+  }
+
+  .notes-paragraph {
+    font-size: 0.75rem;
+  }
+
+  .bible-text {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .bible-reference {
+    font-size: 0.75rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .overlay-section {
+    border: 2px solid;
+    backdrop-filter: none;
+    background: white;
+  }
+
+  .overlay-content {
+    background: white;
+  }
+
+  .overlay-bible {
+    background: #fffbeb;
+    border: 2px solid #d97706;
+  }
+
+  .overlay-lower-third {
+    border: 2px solid white;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .slide-in,
+  .fade-in,
+  .slide-up {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* Print styles */
+@media print {
+  .livestream-overlay {
+    display: none;
+  }
+}
