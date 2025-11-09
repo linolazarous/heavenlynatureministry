@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FaSpinner } from 'react-icons/fa';
-import './LoadingSpinner.css';
+import '../css/LandingSpinner.css'; // Updated import path
 
 const LoadingSpinner = ({ 
   size = 'medium', 
