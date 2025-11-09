@@ -1,8 +1,8 @@
+// src/services/AuthAPI.jsx
 import axios from 'axios';
-import netlifyIdentity from 'netlify-identity-widget';
 
-// API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/.netlify/functions';
+// API Configuration for Render
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.com';
 
 // Create axios instance with default config
 const apiClient = axios.create({
@@ -15,15 +15,10 @@ const apiClient = axios.create({
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
-  async (config) => {
-    try {
-      const user = netlifyIdentity.currentUser();
-      if (user) {
-        const token = await user.jwt();
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.warn('Failed to add auth token to request:', error);
+  (config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -42,8 +37,10 @@ apiClient.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - redirect to login
-          netlifyIdentity.logout();
+          // Unauthorized - clear local storage and redirect
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user');
+          window.dispatchEvent(new Event('unauthorized'));
           break;
         case 403:
           // Forbidden - insufficient permissions
@@ -78,35 +75,23 @@ export const AuthAPI = {
    */
   async login(email, password) {
     try {
-      // Use Netlify Identity for authentication
-      const user = await netlifyIdentity.login(email, password, true);
+      const response = await apiClient.post('/auth/login', {
+        email,
+        password
+      });
       
-      if (!user) {
-        throw new Error('Login failed - no user returned');
-      }
-
-      // Get JWT token
-      const token = await user.jwt();
+      const { user, token } = response.data;
       
-      // Fetch additional user data from our API
-      const userProfile = await this.getUserProfile(user.id);
+      // Store token and user data
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.user_metadata?.full_name || user.email.split('@')[0],
-          role: user.user_metadata?.role || 'user',
-          ...userProfile
-        },
-        token
-      };
+      return { user, token };
     } catch (error) {
       console.error('Login error:', error);
       throw new Error(
-        error.message === 'Failed to fetch' 
-          ? 'Network error. Please check your connection.'
-          : 'Invalid email or password. Please try again.'
+        error.response?.data?.message || 
+        'Invalid email or password. Please try again.'
       );
     }
   },
@@ -116,38 +101,29 @@ export const AuthAPI = {
    */
   async signup(email, password, userData = {}) {
     try {
-      const user = await netlifyIdentity.signup(email, password, userData);
-      
-      if (!user) {
-        throw new Error('Signup failed');
-      }
-
-      // Send welcome email or additional setup
-      await apiClient.post('/welcome-user', {
+      const response = await apiClient.post('/auth/register', {
         email,
-        name: userData.full_name
+        password,
+        ...userData
       });
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.user_metadata?.full_name || user.email.split('@')[0],
-          role: 'user'
-        },
-        token: await user.jwt()
-      };
+      
+      const { user, token } = response.data;
+      
+      // Store token and user data
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      return { user, token };
     } catch (error) {
       console.error('Signup error:', error);
       
-      if (error.message.includes('already exists')) {
+      if (error.response?.status === 409) {
         throw new Error('An account with this email already exists.');
       }
       
       throw new Error(
-        error.message === 'Failed to fetch'
-          ? 'Network error during signup. Please try again.'
-          : 'Signup failed. Please try again.'
+        error.response?.data?.message ||
+        'Signup failed. Please try again.'
       );
     }
   },
@@ -157,7 +133,7 @@ export const AuthAPI = {
    */
   async verifyToken(token) {
     try {
-      const response = await apiClient.get('/verify-token', {
+      const response = await apiClient.get('/auth/verify', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -165,6 +141,19 @@ export const AuthAPI = {
     } catch (error) {
       console.error('Token verification error:', error);
       throw new Error('Session expired. Please log in again.');
+    }
+  },
+
+  /**
+   * Get current user from localStorage
+   */
+  getCurrentUser() {
+    try {
+      const userStr = localStorage.getItem('user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
     }
   },
 
@@ -178,8 +167,9 @@ export const AuthAPI = {
     } catch (error) {
       console.error('Error fetching user profile:', error);
       // Return basic profile if API fails
+      const currentUser = this.getCurrentUser();
       return {
-        name: netlifyIdentity.currentUser()?.user_metadata?.full_name || '',
+        name: currentUser?.name || '',
         avatar: null,
         bio: ''
       };
@@ -192,6 +182,14 @@ export const AuthAPI = {
   async updateUserProfile(userId, profileData) {
     try {
       const response = await apiClient.put(`/users/${userId}/profile`, profileData);
+      
+      // Update stored user data
+      const currentUser = this.getCurrentUser();
+      if (currentUser && currentUser.id === userId) {
+        const updatedUser = { ...currentUser, ...response.data };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Error updating user profile:', error);
@@ -204,8 +202,8 @@ export const AuthAPI = {
    */
   async requestPasswordReset(email) {
     try {
-      await netlifyIdentity.requestPasswordRecovery(email);
-      return { success: true, message: 'Password reset email sent.' };
+      const response = await apiClient.post('/auth/forgot-password', { email });
+      return response.data;
     } catch (error) {
       console.error('Password reset request error:', error);
       throw new Error('Failed to send reset email. Please try again.');
@@ -217,15 +215,12 @@ export const AuthAPI = {
    */
   async changePassword(currentPassword, newPassword) {
     try {
-      const user = netlifyIdentity.currentUser();
+      const user = this.getCurrentUser();
       if (!user) {
         throw new Error('No user logged in');
       }
 
-      // Note: Netlify Identity doesn't have a direct change password method
-      // This would typically be handled through their recovery flow
-      // For now, we'll use a custom function
-      const response = await apiClient.post('/change-password', {
+      const response = await apiClient.post('/auth/change-password', {
         currentPassword,
         newPassword
       });
@@ -242,11 +237,15 @@ export const AuthAPI = {
    */
   async logout() {
     try {
-      netlifyIdentity.logout();
-      return { success: true, message: 'Logged out successfully.' };
+      // Call logout endpoint if needed
+      await apiClient.post('/auth/logout');
     } catch (error) {
-      console.error('Logout error:', error);
-      throw new Error('Logout failed. Please try again.');
+      console.warn('Logout API call failed:', error);
+    } finally {
+      // Always clear local storage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      return { success: true, message: 'Logged out successfully.' };
     }
   },
 
@@ -263,6 +262,15 @@ export const AuthAPI = {
    */
   isAdmin(user) {
     return this.hasRole(user, 'admin');
+  },
+
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated() {
+    const token = localStorage.getItem('auth_token');
+    const user = this.getCurrentUser();
+    return !!(token && user);
   }
 };
 
