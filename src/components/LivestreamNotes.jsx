@@ -9,7 +9,7 @@ import {
   FaCopy
 } from 'react-icons/fa';
 import { debounce } from 'lodash';
-import './LivestreamNotes.css';
+import '../css/Livestream.css';
 
 // Custom hook for notes management
 const useNotesManager = (initialNotes, updateBroadcast) => {
