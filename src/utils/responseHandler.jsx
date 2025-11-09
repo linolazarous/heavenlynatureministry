@@ -1,3 +1,4 @@
+// src/utils/responseHandler.jsx
 export async function handleResponse(response) {
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
