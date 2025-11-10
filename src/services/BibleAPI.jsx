@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { apiClient } from './AuthAPI';
 
 // Bible API Configuration
 const BIBLE_API_BASE_URL = process.env.REACT_APP_BIBLE_API_URL || 'https://bible-api.com';
@@ -85,8 +84,8 @@ export const BibleAPI = {
         return verseData;
       }
 
-      // Fallback to our serverless function
-      return await this.getVerseFromFunction(cleanReference, version, cacheKey);
+      // Fallback to internal function
+      return await this.getVerseFromInternal(cleanReference, version, cacheKey);
 
     } catch (error) {
       console.error('Error fetching Bible verse:', error);
@@ -100,26 +99,40 @@ export const BibleAPI = {
   },
 
   /**
-   * Get verse from Netlify function with better error handling
+   * Get daily verse - NEW FUNCTION ADDED
    */
-  async getVerseFromFunction(reference, version, cacheKey) {
+  async getDailyVerse() {
+    const dailyVerses = [
+      "John 3:16",
+      "Psalm 23:1", 
+      "Philippians 4:13",
+      "Romans 8:28",
+      "Jeremiah 29:11",
+      "Proverbs 3:5-6",
+      "Isaiah 40:31",
+      "Matthew 11:28"
+    ];
+    
+    // Use day of week to rotate through verses
+    const dayIndex = new Date().getDay();
+    const verseReference = dailyVerses[dayIndex] || dailyVerses[0];
+    
+    return await this.getVerse(verseReference, 'NIV');
+  },
+
+  /**
+   * Get verse from internal function with better error handling
+   */
+  async getVerseFromInternal(reference, version, cacheKey) {
     try {
-      const response = await apiClient.get('/bible-verse', {
-        params: { reference, version }
-      });
+      // For now, use fallback since we don't have serverless functions
+      // In a real implementation, you would call your backend API here
+      const fallbackVerse = this.getFallbackVerse(reference, version);
+      setCached(verseCache, cacheKey, fallbackVerse);
+      return fallbackVerse;
 
-      if (response.data && response.data.text) {
-        const verseData = {
-          ...response.data,
-          source: 'function'
-        };
-        setCached(verseCache, cacheKey, verseData);
-        return verseData;
-      }
-
-      throw new BibleAPIError('No verse data returned', 'NO_DATA');
     } catch (error) {
-      console.error('Error fetching from function:', error);
+      console.error('Error fetching from internal function:', error);
       throw error;
     }
   },
@@ -148,10 +161,31 @@ export const BibleAPI = {
         NIV: 'And we know that in all things God works for the good of those who love him, who have been called according to his purpose.',
         KJV: 'And we know that all things work together for good to them that love God, to them who are the called according to his purpose.',
         ESV: 'And we know that for those who love God all things work together for good, for those who are called according to his purpose.',
+      },
+      'Jeremiah 29:11': {
+        NIV: 'For I know the plans I have for you," declares the LORD, "plans to prosper you and not to harm you, plans to give you hope and a future.',
+        KJV: 'For I know the thoughts that I think toward you, saith the LORD, thoughts of peace, and not of evil, to give you an expected end.',
+        ESV: 'For I know the plans I have for you, declares the LORD, plans for welfare and not for evil, to give you a future and a hope.',
+      },
+      'Proverbs 3:5-6': {
+        NIV: 'Trust in the LORD with all your heart and lean not on your own understanding; in all your ways submit to him, and he will make your paths straight.',
+        KJV: 'Trust in the LORD with all thine heart; and lean not unto thine own understanding. In all thy ways acknowledge him, and he shall direct thy paths.',
+        ESV: 'Trust in the LORD with all your heart, and do not lean on your own understanding. In all your ways acknowledge him, and he will make straight your paths.',
+      },
+      'Isaiah 40:31': {
+        NIV: 'but those who hope in the LORD will renew their strength. They will soar on wings like eagles; they will run and not grow weary, they will walk and not be faint.',
+        KJV: 'But they that wait upon the LORD shall renew their strength; they shall mount up with wings as eagles; they shall run, and not be weary; and they shall walk, and not faint.',
+        ESV: 'but they who wait for the LORD shall renew their strength; they shall mount up with wings like eagles; they shall run and not be weary; they shall walk and not faint.',
+      },
+      'Matthew 11:28': {
+        NIV: 'Come to me, all you who are weary and burdened, and I will give you rest.',
+        KJV: 'Come unto me, all ye that labour and are heavy laden, and I will give you rest.',
+        ESV: 'Come to me, all who labor and are heavy laden, and I will give you rest.',
       }
     };
 
     const verseText = fallbackVerses[reference]?.[version] || 
+                     fallbackVerses['Proverbs 3:5-6']?.[version] || 
                      `"Trust in the LORD with all your heart and lean not on your own understanding." - Proverbs 3:5 (${version})`;
 
     return {
@@ -275,5 +309,10 @@ export const BibleAPI = {
     };
   }
 };
+
+// Export individual functions for backward compatibility
+export const getDailyVerse = BibleAPI.getDailyVerse.bind(BibleAPI);
+export const getVerse = BibleAPI.getVerse.bind(BibleAPI);
+export const searchReferences = BibleAPI.searchReferences.bind(BibleAPI);
 
 export default BibleAPI;
