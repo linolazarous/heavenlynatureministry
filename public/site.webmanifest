@@ -1,0 +1,23 @@
+{
+  "name": "Heavenly Nature Ministry",
+  "short_name": "HNM Ministry",
+  "description": "Christ-centered ministry empowering vulnerable children in South Sudan",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a4b8c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["education", "religion", "nonprofit"]
+}
