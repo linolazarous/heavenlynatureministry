@@ -19,7 +19,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ErrorMessage from '../components/ErrorMessage';
 import useLiveStreamStatus from '../hooks/useLiveStreamStatus';
-import { api } from '../services/auth';
+import { auth } from '../services/auth';
 import { ministryAPI } from '../services/ministryAPI';
 import '../css/HomePage.css';
 
