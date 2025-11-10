@@ -19,7 +19,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorBoundary from '../components/ErrorBoundary';
 import ErrorMessage from '../components/ErrorMessage';
 import useLiveStreamStatus from '../hooks/useLiveStreamStatus';
-import { ministryAPI } from '../services/api';
+import { api } from '../services/auth';
+import { ministryAPI } from '../services/ministryAPI';
 import '../css/HomePage.css';
 
 // Custom hook for public home data
