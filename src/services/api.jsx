@@ -1,564 +1,344 @@
-// src/services/api.jsx
-import axios from 'axios';
+// Add this to src/services/api.jsx after the other API services
 
-// Base API configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.com';
-
-// Create axios instance with default config
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth data and redirect to login
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('currentUser');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// Donation API service
-export const donationAPI = {
+// Ministry API service for admin dashboard
+export const ministryAPI = {
   /**
-   * Process one-time donation
+   * Get ministry statistics for admin dashboard
    */
-  async processOneTimeDonation(donationData) {
+  async getMinistryStats() {
     try {
-      const response = await apiClient.post('/api/donations/one-time', donationData);
+      const response = await apiClient.get('/api/admin/ministry/stats');
       return response.data;
     } catch (error) {
-      console.error('Donation processing error:', error);
-      throw new Error(error.response?.data?.message || 'Failed to process donation');
-    }
-  },
-
-  /**
-   * Process monthly subscription
-   */
-  async processMonthlySubscription(subscriptionData) {
-    try {
-      const response = await apiClient.post('/api/donations/subscription', subscriptionData);
-      return response.data;
-    } catch (error) {
-      console.error('Subscription processing error:', error);
-      throw new Error(error.response?.data?.message || 'Failed to process subscription');
-    }
-  },
-
-  /**
-   * Get donation statistics
-   */
-  async getDonationStats() {
-    try {
-      const response = await apiClient.get('/api/donations/stats');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching donation stats:', error);
+      console.error('Error fetching ministry stats:', error);
       // Return mock data for development
       return {
+        totalMembers: 1247,
+        activeMembers: 892,
+        newMembersThisMonth: 45,
+        eventsThisMonth: 12,
         totalDonations: 125000,
-        monthlyRecurring: 2500,
-        donorsCount: 347,
-        recentDonations: [
-          { name: 'Anonymous', amount: 100, date: new Date().toISOString() },
-          { name: 'John D.', amount: 50, date: new Date().toISOString() }
-        ]
+        monthlyDonations: 15000,
+        prayerRequests: 23,
+        volunteers: 156,
+        growthRate: 12.5,
+        engagementRate: 68.3
       };
     }
   },
 
   /**
-   * Get user donation stats
+   * Get dashboard overview data
    */
-  async getUserDonationStats(userId) {
+  async getDashboardOverview() {
     try {
-      const response = await apiClient.get(`/api/donations/user/${userId}/stats`);
+      const response = await apiClient.get('/api/admin/dashboard/overview');
       return response.data;
     } catch (error) {
-      console.error('Error fetching user donation stats:', error);
+      console.error('Error fetching dashboard overview:', error);
       // Return mock data for development
       return {
-        totalDonated: 1250,
-        donationCount: 12,
-        recentDonations: [
-          { id: '1', amount: 100, date: new Date().toISOString(), status: 'completed' },
-          { id: '2', amount: 50, date: new Date(Date.now() - 86400000).toISOString(), status: 'completed' }
+        recentActivity: [
+          {
+            type: 'donation',
+            user: 'John Smith',
+            amount: 100,
+            timestamp: new Date().toISOString(),
+            description: 'One-time donation'
+          },
+          {
+            type: 'registration',
+            user: 'Sarah Johnson',
+            event: 'Sunday Service',
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            description: 'Registered for event'
+          },
+          {
+            type: 'prayer',
+            user: 'Michael Brown',
+            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+            description: 'Submitted prayer request'
+          }
+        ],
+        upcomingEvents: [
+          {
+            id: '1',
+            title: 'Sunday Worship Service',
+            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+            attendees: 150,
+            capacity: 200
+          },
+          {
+            id: '2',
+            title: 'Bible Study',
+            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            attendees: 45,
+            capacity: 60
+          }
+        ],
+        systemStatus: {
+          website: 'online',
+          database: 'online',
+          livestream: 'offline',
+          email: 'online'
+        }
+      };
+    }
+  },
+
+  /**
+   * Get member growth analytics
+   */
+  async getMemberGrowth(timeframe = 'year') {
+    try {
+      const response = await apiClient.get('/api/admin/analytics/member-growth', {
+        params: { timeframe }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching member growth:', error);
+      // Return mock data for development
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return {
+        labels: months,
+        datasets: [
+          {
+            label: 'New Members',
+            data: [15, 22, 18, 25, 30, 28, 35, 40, 38, 45, 42, 50],
+            borderColor: '#4a6fa5',
+            backgroundColor: 'rgba(74, 111, 165, 0.1)'
+          },
+          {
+            label: 'Total Members',
+            data: [800, 822, 840, 865, 895, 923, 958, 998, 1036, 1081, 1123, 1173],
+            borderColor: '#2a9d8f',
+            backgroundColor: 'rgba(42, 157, 143, 0.1)'
+          }
         ]
       };
     }
   },
 
   /**
-   * Get user donation history
+   * Get engagement metrics
    */
-  async getUserDonationHistory(userId) {
+  async getEngagementMetrics() {
     try {
-      const response = await apiClient.get(`/api/donations/user/${userId}/history`);
+      const response = await apiClient.get('/api/admin/analytics/engagement');
       return response.data;
     } catch (error) {
-      console.error('Error fetching user donation history:', error);
+      console.error('Error fetching engagement metrics:', error);
+      // Return mock data for development
+      return {
+        attendanceRate: 68.5,
+        donationParticipation: 42.3,
+        eventParticipation: 35.7,
+        volunteerParticipation: 28.9,
+        prayerRequestRate: 15.2,
+        averageSessionDuration: '12:45',
+        pageViews: 12457,
+        uniqueVisitors: 3241
+      };
+    }
+  },
+
+  /**
+   * Get financial overview
+   */
+  async getFinancialOverview() {
+    try {
+      const response = await apiClient.get('/api/admin/financial/overview');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching financial overview:', error);
+      // Return mock data for development
+      return {
+        totalRevenue: 125000,
+        monthlyRevenue: 15000,
+        expenses: 85000,
+        netIncome: 40000,
+        revenueByCategory: [
+          { category: 'Donations', amount: 100000, percentage: 80 },
+          { category: 'Events', amount: 15000, percentage: 12 },
+          { category: 'Merchandise', amount: 8000, percentage: 6.4 },
+          { category: 'Other', amount: 2000, percentage: 1.6 }
+        ],
+        expenseBreakdown: [
+          { category: 'Staff', amount: 45000, percentage: 52.9 },
+          { category: 'Facilities', amount: 20000, percentage: 23.5 },
+          { category: 'Outreach', amount: 12000, percentage: 14.1 },
+          { category: 'Administrative', amount: 8000, percentage: 9.4 }
+        ]
+      };
+    }
+  },
+
+  /**
+   * Get recent activities
+   */
+  async getRecentActivities(limit = 10) {
+    try {
+      const response = await apiClient.get('/api/admin/activities/recent', {
+        params: { limit }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
       // Return mock data for development
       return [
-        { id: '1', amount: 100, date: new Date().toISOString(), type: 'one-time', status: 'completed' },
-        { id: '2', amount: 50, date: new Date(Date.now() - 86400000).toISOString(), type: 'one-time', status: 'completed' },
-        { id: '3', amount: 25, date: new Date(Date.now() - 172800000).toISOString(), type: 'monthly', status: 'active' }
+        {
+          id: '1',
+          type: 'donation',
+          user: { name: 'John Smith', email: 'john@example.com' },
+          amount: 100,
+          timestamp: new Date().toISOString(),
+          status: 'completed'
+        },
+        {
+          id: '2',
+          type: 'event_registration',
+          user: { name: 'Sarah Johnson', email: 'sarah@example.com' },
+          event: 'Sunday Service',
+          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          status: 'confirmed'
+        },
+        {
+          id: '3',
+          type: 'prayer_request',
+          user: { name: 'Michael Brown', email: 'michael@example.com' },
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          status: 'new'
+        },
+        {
+          id: '4',
+          type: 'member_joined',
+          user: { name: 'Emily Davis', email: 'emily@example.com' },
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+          status: 'active'
+        }
       ];
     }
   },
 
   /**
-   * Get donation history (admin only)
+   * Get system health status
    */
-  async getDonationHistory(filters = {}) {
+  async getSystemHealth() {
     try {
-      const response = await apiClient.get('/api/admin/donations', { params: filters });
+      const response = await apiClient.get('/api/admin/system/health');
       return response.data;
     } catch (error) {
-      console.error('Error fetching donation history:', error);
-      throw new Error('Failed to fetch donation history');
-    }
-  },
-
-  /**
-   * Send donation receipt
-   */
-  async sendDonationReceipt(donationId, email) {
-    try {
-      const response = await apiClient.post(`/api/donations/${donationId}/receipt`, { email });
-      return response.data;
-    } catch (error) {
-      console.error('Error sending receipt:', error);
-      throw new Error('Failed to send receipt');
-    }
-  },
-
-  /**
-   * Cancel subscription
-   */
-  async cancelSubscription(subscriptionId) {
-    try {
-      const response = await apiClient.post(`/api/donations/subscriptions/${subscriptionId}/cancel`);
-      return response.data;
-    } catch (error) {
-      console.error('Error canceling subscription:', error);
-      throw new Error('Failed to cancel subscription');
-    }
-  },
-
-  /**
-   * Validate donation amount
-   */
-  validateDonationAmount(amount) {
-    const minAmount = 1; // $1 minimum
-    const maxAmount = 100000; // $100,000 maximum
-    
-    if (amount < minAmount) {
-      return { valid: false, message: `Minimum donation amount is $${minAmount}` };
-    }
-    
-    if (amount > maxAmount) {
-      return { valid: false, message: `Maximum donation amount is $${maxAmount}` };
-    }
-    
-    return { valid: true };
-  },
-
-  /**
-   * Format currency
-   */
-  formatCurrency(amount, currency = 'USD') {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  }
-};
-
-// Admin-specific API services
-export const adminAPI = {
-  /**
-   * Get all donations (admin)
-   */
-  async getAllDonations(filters = {}) {
-    try {
-      const response = await apiClient.get('/api/admin/donations', { params: filters });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching all donations:', error);
-      throw new Error('Failed to fetch donations');
-    }
-  },
-
-  /**
-   * Get donation by ID (admin)
-   */
-  async getDonationById(donationId) {
-    try {
-      const response = await apiClient.get(`/api/admin/donations/${donationId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching donation:', error);
-      throw new Error('Failed to fetch donation');
-    }
-  },
-
-  /**
-   * Update donation status (admin)
-   */
-  async updateDonationStatus(donationId, status) {
-    try {
-      const response = await apiClient.put(`/api/admin/donations/${donationId}/status`, { status });
-      return response.data;
-    } catch (error) {
-      console.error('Error updating donation status:', error);
-      throw new Error('Failed to update donation status');
-    }
-  },
-
-  /**
-   * Export donations to CSV (admin)
-   */
-  async exportDonations(filters = {}) {
-    try {
-      const response = await apiClient.get('/api/admin/donations/export', { 
-        params: filters,
-        responseType: 'blob'
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error exporting donations:', error);
-      throw new Error('Failed to export donations');
-    }
-  },
-
-  /**
-   * Get donation analytics (admin)
-   */
-  async getDonationAnalytics(timeframe = 'month') {
-    try {
-      const response = await apiClient.get('/api/admin/analytics/donations', {
-        params: { timeframe }
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching donation analytics:', error);
-      // Return mock analytics for development
+      console.error('Error fetching system health:', error);
+      // Return mock data for development
       return {
-        totalRevenue: 125000,
-        monthlyGrowth: 15.5,
-        topDonors: [
-          { name: 'John Smith', amount: 5000, count: 12 },
-          { name: 'Sarah Johnson', amount: 3500, count: 8 },
-          { name: 'Michael Brown', amount: 2500, count: 5 }
+        services: [
+          { name: 'Website', status: 'healthy', uptime: 99.8, responseTime: 245 },
+          { name: 'Database', status: 'healthy', uptime: 99.9, responseTime: 120 },
+          { name: 'Email Service', status: 'healthy', uptime: 99.5, responseTime: 350 },
+          { name: 'File Storage', status: 'healthy', uptime: 99.7, responseTime: 180 },
+          { name: 'Payment Gateway', status: 'healthy', uptime: 99.9, responseTime: 280 }
         ],
-        revenueByMonth: [
-          { month: 'Jan', revenue: 10000 },
-          { month: 'Feb', revenue: 12000 },
-          { month: 'Mar', revenue: 15000 },
-          { month: 'Apr', revenue: 11000 },
-          { month: 'May', revenue: 13000 },
-          { month: 'Jun', revenue: 14000 }
-        ]
+        lastIncident: '2024-01-15T14:30:00Z',
+        overallStatus: 'healthy'
       };
     }
   },
 
   /**
-   * Get donor statistics (admin)
+   * Send broadcast notification
    */
-  async getDonorStats() {
+  async sendBroadcastNotification(notificationData) {
     try {
-      const response = await apiClient.get('/api/admin/analytics/donors');
+      const response = await apiClient.post('/api/admin/notifications/broadcast', notificationData);
       return response.data;
     } catch (error) {
-      console.error('Error fetching donor stats:', error);
+      console.error('Error sending broadcast notification:', error);
+      throw new Error('Failed to send broadcast notification');
+    }
+  },
+
+  /**
+   * Get notification statistics
+   */
+  async getNotificationStats() {
+    try {
+      const response = await apiClient.get('/api/admin/notifications/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching notification stats:', error);
       // Return mock data for development
       return {
-        totalDonors: 347,
-        newDonorsThisMonth: 25,
-        recurringDonors: 89,
-        averageDonation: 85.50,
-        donorRetentionRate: 78.5
+        totalSent: 1247,
+        delivered: 1189,
+        opened: 856,
+        clickRate: 28.5,
+        bounceRate: 2.1
       };
     }
-  }
-};
+  },
 
-// User API service
-export const userAPI = {
   /**
-   * Get user profile
+   * Update ministry settings
    */
-  async getUserProfile(userId) {
+  async updateMinistrySettings(settings) {
     try {
-      const response = await apiClient.get(`/api/users/${userId}/profile`);
+      const response = await apiClient.put('/api/admin/ministry/settings', settings);
       return response.data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error updating ministry settings:', error);
+      throw new Error('Failed to update ministry settings');
+    }
+  },
+
+  /**
+   * Get ministry settings
+   */
+  async getMinistrySettings() {
+    try {
+      const response = await apiClient.get('/api/admin/ministry/settings');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching ministry settings:', error);
       // Return mock data for development
       return {
-        id: userId,
-        name: 'Demo User',
-        email: 'user@example.com',
-        avatar: null,
-        bio: 'Member of Heavenly Nature Ministry',
-        phone: '+1234567890',
+        name: 'Heavenly Nature Ministry',
+        contactEmail: 'info@heavenlynature.org',
+        contactPhone: '+1-555-0123',
         address: {
-          street: '123 Church St',
-          city: 'Anytown',
-          state: 'CA',
-          zipCode: '12345'
+          street: '123 Faith Avenue',
+          city: 'Spiritual City',
+          state: 'SC',
+          zipCode: '12345',
+          country: 'USA'
         },
-        preferences: {
-          emailNotifications: true,
-          smsNotifications: false,
-          newsletter: true
+        socialMedia: {
+          facebook: 'https://facebook.com/heavenlynature',
+          youtube: 'https://youtube.com/heavenlynature',
+          instagram: 'https://instagram.com/heavenlynature'
         },
-        eventsAttended: 5,
-        memberSince: '2023-01-15T00:00:00.000Z'
+        livestreamSettings: {
+          platform: 'youtube',
+          autoStart: true,
+          defaultTitle: 'Heavenly Nature Ministry Worship Service'
+        },
+        donationSettings: {
+          currency: 'USD',
+          minimumAmount: 1,
+          paymentMethods: ['card', 'bank_transfer'],
+          taxDeductible: true
+        }
       };
     }
-  },
-
-  /**
-   * Update user profile
-   */
-  async updateUserProfile(userId, profileData) {
-    try {
-      const response = await apiClient.put(`/api/users/${userId}/profile`, profileData);
-      return response.data;
-    } catch (error) {
-      console.error('Error updating user profile:', error);
-      throw new Error('Failed to update profile');
-    }
-  },
-
-  /**
-   * Change user password
-   */
-  async changePassword(userId, passwordData) {
-    try {
-      const response = await apiClient.post(`/api/users/${userId}/change-password`, passwordData);
-      return response.data;
-    } catch (error) {
-      console.error('Error changing password:', error);
-      throw new Error('Failed to change password');
-    }
   }
 };
 
-// Event API service
-export const eventAPI = {
-  /**
-   * Get all events
-   */
-  async getEvents(filters = {}) {
-    try {
-      const response = await apiClient.get('/api/events', { params: filters });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      // Return mock data for development
-      return this.getMockEvents();
-    }
-  },
-
-  /**
-   * Get featured events
-   */
-  async getFeaturedEvents() {
-    try {
-      const response = await apiClient.get('/api/events/featured');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching featured events:', error);
-      return this.getMockEvents().filter(event => event.isFeatured);
-    }
-  },
-
-  /**
-   * Get event by ID
-   */
-  async getEventById(eventId) {
-    try {
-      const response = await apiClient.get(`/api/events/${eventId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching event:', error);
-      throw new Error('Event not found');
-    }
-  },
-
-  /**
-   * Register for event
-   */
-  async registerForEvent(eventId, registrationData) {
-    try {
-      const response = await apiClient.post(`/api/events/${eventId}/register`, registrationData);
-      return response.data;
-    } catch (error) {
-      console.error('Error registering for event:', error);
-      throw new Error('Failed to register for event');
-    }
-  },
-
-  /**
-   * Mock events data for development
-   */
-  getMockEvents() {
-    const now = new Date();
-    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-    return [
-      {
-        id: '1',
-        title: 'Sunday Worship Service',
-        description: 'Join us for our weekly Sunday worship service with praise, prayer, and preaching from God\'s Word.',
-        date: nextWeek.toISOString(),
-        time: '10:00 AM - 1:00 PM',
-        location: 'Main Sanctuary',
-        category: 'worship',
-        isFeatured: true,
-        image: '/images/events/worship-service.jpg',
-        maxAttendees: 200,
-        currentAttendees: 150,
-        registrationRequired: false,
-        cost: 0
-      },
-      {
-        id: '2',
-        title: 'Wednesday Prayer Meeting',
-        description: 'Corporate prayer meeting for all church members and visitors.',
-        date: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-        time: '6:00 PM - 7:30 PM',
-        location: 'Prayer Room',
-        category: 'prayer',
-        isFeatured: false,
-        image: '/images/events/prayer-meeting.jpg',
-        maxAttendees: 50,
-        currentAttendees: 25,
-        registrationRequired: false,
-        cost: 0
-      }
-    ];
-  }
-};
-
-// Auth API service
-export const authAPI = {
-  /**
-   * Login user
-   */
-  async login(credentials) {
-    try {
-      const response = await apiClient.post('/api/auth/login', credentials);
-      return response.data;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw new Error(error.response?.data?.message || 'Login failed');
-    }
-  },
-
-  /**
-   * Register user
-   */
-  async register(userData) {
-    try {
-      const response = await apiClient.post('/api/auth/register', userData);
-      return response.data;
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw new Error(error.response?.data?.message || 'Registration failed');
-    }
-  },
-
-  /**
-   * Refresh token
-   */
-  async refreshToken() {
-    try {
-      const response = await apiClient.post('/api/auth/refresh');
-      return response.data;
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      throw new Error('Failed to refresh token');
-    }
-  },
-
-  /**
-   * Logout user
-   */
-  async logout() {
-    try {
-      const response = await apiClient.post('/api/auth/logout');
-      return response.data;
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw new Error('Logout failed');
-    }
-  },
-
-  /**
-   * Forgot password
-   */
-  async forgotPassword(email) {
-    try {
-      const response = await apiClient.post('/api/auth/forgot-password', { email });
-      return response.data;
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      throw new Error(error.response?.data?.message || 'Failed to send reset email');
-    }
-  },
-
-  /**
-   * Reset password
-   */
-  async resetPassword(token, newPassword) {
-    try {
-      const response = await apiClient.post('/api/auth/reset-password', { token, newPassword });
-      return response.data;
-    } catch (error) {
-      console.error('Reset password error:', error);
-      throw new Error(error.response?.data?.message || 'Failed to reset password');
-    }
-  }
-};
-
-// Export the axios instance for direct use
-export { apiClient };
-
-// Default export with all API services
+// Also update the default export to include ministryAPI
 export default {
   donation: donationAPI,
   admin: adminAPI,
   user: userAPI,
   event: eventAPI,
   auth: authAPI,
+  ministry: ministryAPI, // Add this line
   client: apiClient
 };
