@@ -23,7 +23,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 
 // Hooks and Services
 import { useAuth } from '../hooks/useAuth';
-import { donationService } from '../services/donationService;
+import { donationService } from '../services/donationService';
 
 // Constants
 const DEFAULT_TIERS = [
