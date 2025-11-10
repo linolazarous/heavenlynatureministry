@@ -22,7 +22,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { userService } from '../services/userService';
 import { donationService } from '../services/donationService';
 import { eventService } from '../services/eventService';
-import { authService } from '../services/auth';
+import { authService } from '../services/authService';
 
 // Custom hook for profile data management
 const useProfileData = (userId) => {
