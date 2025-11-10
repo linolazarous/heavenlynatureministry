@@ -9,15 +9,32 @@ import ScrollToTop from "./components/ScrollToTop";
 import { AuthProvider } from "./components/AuthContext";
 import LoadingSpinner from "./components/LoadingSpinner";
 
-// Lazy pages with fallback protection
+/* ---------------------------------------------------
+   🧩 Safe Lazy Import Helper
+--------------------------------------------------- */
 const safeLazyImport = (importFunc, name) =>
-  lazy(() =>
-    importFunc().catch((err) => {
+  lazy(async () => {
+    try {
+      const module = await importFunc();
+      return module;
+    } catch (err) {
       console.error(`❌ Failed to load ${name} page:`, err);
-      return { default: () => <div className="p-6 text-center text-red-600">Failed to load {name} page.</div> };
-    })
-  );
+      return {
+        default: () => (
+          <div className="min-h-screen flex items-center justify-center text-center text-red-600">
+            <div>
+              <p className="text-lg font-semibold mb-2">Failed to load {name} page.</p>
+              <p className="text-gray-600">Please refresh or try again later.</p>
+            </div>
+          </div>
+        ),
+      };
+    }
+  });
 
+/* ---------------------------------------------------
+   🧭 Lazy Pages
+--------------------------------------------------- */
 const Home = safeLazyImport(() => import("./pages/Home"), "Home");
 const Profile = safeLazyImport(() => import("./pages/Profile"), "Profile");
 const Livestream = safeLazyImport(() => import("./pages/Livestream"), "Livestream");
@@ -26,7 +43,9 @@ const PrivacyPolicy = safeLazyImport(() => import("./pages/PrivacyPolicy"), "Pri
 const Terms = safeLazyImport(() => import("./pages/Terms"), "Terms of Service");
 const Contact = safeLazyImport(() => import("./pages/Contact"), "Contact");
 
-// ---------- Error Boundary ----------
+/* ---------------------------------------------------
+   🧱 Global Error Boundary
+--------------------------------------------------- */
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -38,7 +57,7 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("🔥 App Error Boundary:", error, errorInfo);
+    console.error("🔥 App Error Boundary caught:", error, errorInfo);
     this.setState({ errorInfo });
   }
 
@@ -68,7 +87,7 @@ class ErrorBoundary extends React.Component {
               <details className="mt-4 text-left text-sm text-gray-500">
                 <summary className="cursor-pointer">Error Details</summary>
                 <pre className="mt-2 bg-gray-100 p-2 rounded overflow-auto text-xs">
-                  {this.state.error.toString()}
+                  {this.state.error?.toString()}
                   {this.state.errorInfo?.componentStack}
                 </pre>
               </details>
@@ -81,7 +100,9 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// ---------- Loading Placeholder ----------
+/* ---------------------------------------------------
+   🌀 Loading Fallback
+--------------------------------------------------- */
 const LoadingFallback = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
     <div className="text-center">
@@ -92,7 +113,9 @@ const LoadingFallback = () => (
   </div>
 );
 
-// ---------- Layout ----------
+/* ---------------------------------------------------
+   🧩 Layout
+--------------------------------------------------- */
 const MainLayout = ({ children, showHeader = true, showFooter = true }) => (
   <div className="min-h-screen flex flex-col bg-white">
     {showHeader && <Header />}
@@ -102,7 +125,9 @@ const MainLayout = ({ children, showHeader = true, showFooter = true }) => (
   </div>
 );
 
-// ---------- Route Wrapper ----------
+/* ---------------------------------------------------
+   🛡️ Route Wrapper
+--------------------------------------------------- */
 const RouteWrapper = ({ component: Component, layoutProps = {} }) => (
   <ErrorBoundary>
     <MainLayout {...layoutProps}>
@@ -113,12 +138,16 @@ const RouteWrapper = ({ component: Component, layoutProps = {} }) => (
   </ErrorBoundary>
 );
 
-// ---------- Main App ----------
+/* ---------------------------------------------------
+   🌍 App Content
+--------------------------------------------------- */
 const AppContent = () => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    console.log("⚙️ Initializing Heavenly Nature Ministry app...");
+
     const init = async () => {
       try {
         AOS.init({
@@ -127,18 +156,25 @@ const AppContent = () => {
           offset: 50,
           easing: "ease-in-out-cubic",
         });
-        await new Promise((r) => setTimeout(r, 100));
-        if (mounted) setIsInitialized(true);
-        console.log("🎉 App initialized successfully");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (mounted) {
+          setIsInitialized(true);
+          console.log("🎉 App initialized successfully");
+        }
       } catch (err) {
-        console.error("AOS init error:", err);
+        console.error("❌ AOS init error:", err);
         if (mounted) setIsInitialized(true);
       }
     };
+
     init();
     return () => {
       mounted = false;
-      AOS.refresh();
+      try {
+        AOS.refreshHard();
+      } catch (err) {
+        console.warn("AOS cleanup failed:", err);
+      }
     };
   }, []);
 
@@ -164,6 +200,18 @@ const AppContent = () => {
   );
 };
 
+/* ---------------------------------------------------
+   🧾 Root Export
+--------------------------------------------------- */
 export default function App() {
-  return <AppContent />;
+  try {
+    return <AppContent />;
+  } catch (error) {
+    console.error("🚨 Fatal App Render Error:", error);
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-600 text-center">
+        <p>Critical initialization error. Please refresh the page.</p>
+      </div>
+    );
+  }
 }
