@@ -4,13 +4,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Core Components - Simple relative imports
-const Header = lazy(() => import('./components/Header'));
-const Footer = lazy(() => import('./components/Footer'));
-const ScrollToTop = lazy(() => import('./components/ScrollToTop'));
-const AuthProvider = lazy(() => import('./components/AuthContext'));
+// Core Components - Import directly to avoid lazy loading issues
+import Header from './components/Header';
+import Footer from './components/Footer';
+import ScrollToTop from './components/ScrollToTop';
+import { AuthProvider } from './components/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
-// Public Pages
+// Public Pages - Lazy load with proper error boundaries
 const Home = lazy(() => import('./pages/Home'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Livestream = lazy(() => import('./pages/Livestream'));
@@ -27,78 +28,190 @@ const AdminUsers = lazy(() => import('./admin/User'));
 const AdminLivestream = lazy(() => import('./admin/Livestream'));
 const AdminDonate = lazy(() => import('./admin/Donate'));
 
-// Loading Component
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h1>
+            <p className="text-gray-600 mb-4">Please refresh the page or try again later.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Loading Component with better UX
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+  <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+    <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mb-4"></div>
+    <p className="text-gray-600">Loading Heavenly Nature Ministry...</p>
   </div>
 );
 
+// Layout component to handle common page structure
+const MainLayout = ({ children, showHeader = true, showFooter = true }) => {
+  return (
+    <div className="min-h-screen flex flex-col">
+      {showHeader && <Header />}
+      <main className="flex-1">
+        {children}
+      </main>
+      {showFooter && <Footer />}
+      <ScrollToTop />
+    </div>
+  );
+};
+
+// Route wrapper component
+const RouteWrapper = ({ component: Component, layoutProps = {} }) => (
+  <MainLayout {...layoutProps}>
+    <Component />
+  </MainLayout>
+);
+
+// Admin route wrapper with auth check
+const AdminRoute = ({ component: Component }) => {
+  const [isAuthenticated] = useState(false); // Replace with actual auth check
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return (
+    <MainLayout showHeader={false} showFooter={false}>
+      <Component />
+    </MainLayout>
+  );
+};
+
 // Main App Component
 const AppContent = () => {
-  const [livestreamActive, setLivestreamActive] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    AOS.init({ duration: 800, once: true });
+    // Initialize AOS after a small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      AOS.init({
+        duration: 800,
+        once: true,
+        offset: 100,
+        easing: 'ease-in-out',
+      });
+      setIsInitialized(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
+  // Show loading until app is fully initialized
+  if (!isInitialized) {
+    return <LoadingFallback />;
+  }
+
   return (
-    <Router>
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/" element={
-            <div>
-              <Header />
-              <Home />
-              <Footer />
-            </div>
-          } />
-          <Route path="/livestream" element={
-            <div>
-              <Header />
-              <Livestream />
-              <Footer />
-            </div>
-          } />
-          <Route path="/donate" element={
-            <div>
-              <Header />
-              <Donate />
-              <Footer />
-            </div>
-          } />
-          <Route path="/profile" element={
-            <div>
-              <Header />
-              <Profile />
-              <Footer />
-            </div>
-          } />
-          <Route path="/privacy-policy" element={
-            <div>
-              <Header />
-              <PrivacyPolicy />
-              <Footer />
-            </div>
-          } />
-          <Route path="/terms" element={
-            <div>
-              <Header />
-              <Terms />
-              <Footer />
-            </div>
-          } />
-          <Route path="/contact" element={
-            <div>
-              <Header />
-              <Contact />
-              <Footer />
-            </div>
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-    </Router>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route 
+                path="/" 
+                element={<RouteWrapper component={Home} />} 
+              />
+              <Route 
+                path="/livestream" 
+                element={<RouteWrapper component={Livestream} />} 
+              />
+              <Route 
+                path="/donate" 
+                element={<RouteWrapper component={Donation} />} 
+              />
+              <Route 
+                path="/profile" 
+                element={<RouteWrapper component={Profile} />} 
+              />
+              <Route 
+                path="/privacy-policy" 
+                element={<RouteWrapper component={PrivacyPolicy} />} 
+              />
+              <Route 
+                path="/terms" 
+                element={<RouteWrapper component={Terms} />} 
+              />
+              <Route 
+                path="/contact" 
+                element={<RouteWrapper component={Contact} />} 
+              />
+              
+              {/* Success/Cancel Pages (minimal layout) */}
+              <Route 
+                path="/success" 
+                element={
+                  <MainLayout showHeader={false} showFooter={false}>
+                    <Success />
+                  </MainLayout>
+                } 
+              />
+              <Route 
+                path="/cancel" 
+                element={
+                  <MainLayout showHeader={false} showFooter={false}>
+                    <Cancel />
+                  </MainLayout>
+                } 
+              />
+              
+              {/* Admin Routes */}
+              <Route 
+                path="/admin" 
+                element={<AdminRoute component={AdminHome} />} 
+              />
+              <Route 
+                path="/admin/users" 
+                element={<AdminRoute component={AdminUsers} />} 
+              />
+              <Route 
+                path="/admin/livestream" 
+                element={<AdminRoute component={AdminLivestream} />} 
+              />
+              <Route 
+                path="/admin/donate" 
+                element={<AdminRoute component={AdminDonate} />} 
+              />
+              
+              {/* Catch all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </Router>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 
@@ -109,4 +222,3 @@ const App = () => (
 );
 
 export default App;
-
