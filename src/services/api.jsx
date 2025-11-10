@@ -1,4 +1,3 @@
-// src/services/api.jsx
 import axios from 'axios';
 
 // Base API configuration for Render deployment
@@ -150,6 +149,9 @@ export const mockApi = {
     }
   }
 };
+
+// Export ministryAPI for Home.jsx
+export { ministryAPI } from './ministryAPI.jsx';
 
 // Export based on environment
 export default process.env.NODE_ENV === 'production' ? api : mockApi;
