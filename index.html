@@ -1,59 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- Character Set & Viewport -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="robots" content="index, follow" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Security & Privacy -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="format-detection" content="telephone=no">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 
-    <!-- Primary Meta -->
-    <title>Heavenly Nature Ministry | Juba, South Sudan</title>
+    <!-- Primary Meta Tags -->
+    <title>Heavenly Nature Ministry - Transforming Lives in Juba, South Sudan</title>
     <meta
       name="description"
-      content="Empowering South Sudan's vulnerable children through Christ-centered transformation—spiritually, physically, and mentally—to build self-reliant, God-fearing generations."
+      content="Christ-centered ministry empowering vulnerable children in South Sudan through spiritual growth, education, and community development. Join us in building God-fearing generations."
     />
+    <meta name="keywords" content="South Sudan ministry, Juba church, children's ministry, Christian charity, community development, spiritual growth" />
 
-    <!-- Open Graph -->
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://heavenlynatureministry.com/" />
-    <meta property="og:title" content="Heavenly Nature Ministry | Juba, South Sudan" />
-    <meta property="og:description" content="Empowering South Sudan's vulnerable children through Christ-centered transformation." />
-    <meta property="og:image" content="/images/og-image.webp" />
+    <meta property="og:title" content="Heavenly Nature Ministry - Transforming Lives in Juba, South Sudan" />
+    <meta property="og:description" content="Christ-centered ministry empowering vulnerable children in South Sudan through spiritual growth, education, and community development." />
+    <meta property="og:image" content="https://heavenlynatureministry.com/images/og-image.webp" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Heavenly Nature Ministry - Serving the community in Juba, South Sudan" />
+    <meta property="og:site_name" content="Heavenly Nature Ministry" />
+    <meta property="og:locale" content="en_US" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://heavenlynatureministry.com/" />
-    <meta property="twitter:title" content="Heavenly Nature Ministry | Juba, South Sudan" />
-    <meta property="twitter:description" content="Empowering South Sudan's vulnerable children through Christ-centered transformation." />
-    <meta property="twitter:image" content="/images/og-image.webp" />
+    <meta property="twitter:title" content="Heavenly Nature Ministry - Transforming Lives in Juba, South Sudan" />
+    <meta property="twitter:description" content="Christ-centered ministry empowering vulnerable children in South Sudan through spiritual growth and community development." />
+    <meta property="twitter:image" content="https://heavenlynatureministry.com/images/og-image.webp" />
+    <meta property="twitter:image:alt" content="Heavenly Nature Ministry serving South Sudan" />
 
-    <!-- Favicons & Manifest -->
-    <link rel="icon" href="/favicon.ico" />
+    <!-- Favicons & Web App Manifest -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="manifest" href="/site.webmanifest" crossorigin="use-credentials" />
     <meta name="theme-color" content="#1a4b8c" />
+    <meta name="msapplication-TileColor" content="#1a4b8c" />
 
-    <!-- Fonts & CSS -->
+    <!-- Preload Critical Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link rel="preconnect" href="https://unpkg.com" />
+
+    <!-- Preload Fonts -->
     <link
       rel="preload"
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
       as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+
+    <!-- Preload Icons -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
+      rel="preload"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+      />
+    </noscript>
 
-    <!-- Structured Data -->
+    <!-- Preload AOS -->
+    <link
+      rel="preload"
+      href="https://unpkg.com/aos@2.3.1/dist/aos.css"
+      as="style"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+    </noscript>
+
+    <!-- Critical CSS (Inline for above-the-fold content) -->
+    <style>
+      /* Critical CSS to prevent layout shift */
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        background: #ffffff;
+        color: #1f2937;
+        line-height: 1.6;
+      }
+      
+      #root {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* Loading animation */
+      .app-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      }
+      
+      .loading-spinner {
+        width: 48px;
+        height: 48px;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #059669;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Ensure no FOUT (Flash of Unstyled Text) */
+      .fonts-loading * {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+      }
+    </style>
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NGO",
+        "name": "Heavenly Nature Ministry",
+        "alternateName": "HNM South Sudan",
+        "url": "https://heavenlynatureministry.com",
+        "logo": "https://heavenlynatureministry.com/images/logo.webp",
+        "description": "Christ-centered ministry dedicated to transforming the lives of vulnerable children in South Sudan through spiritual guidance, education, and community empowerment.",
+        "foundingDate": "2020",
+        "founder": {
+          "@type": "Person",
+          "name": "Lazarous Lino"
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Gudele 2, Joppa Block 3",
+          "addressLocality": "Juba",
+          "addressRegion": "Central Equatoria",
+          "addressCountry": "South Sudan"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+211-926-006-202",
+          "contactType": "customer service",
+          "areaServed": "SS",
+          "availableLanguage": ["en", "ar"]
+        },
+        "sameAs": [
+          "https://www.facebook.com/heavenlynatureministry",
+          "https://www.youtube.com/@heavenlynatureministry"
+        ],
+        "keywords": "Christian ministry, South Sudan charity, children's education, community development, spiritual growth"
+      }
+    </script>
+
+    <!-- Additional Organization Schema -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -71,23 +197,83 @@
         "contactPoint": {
           "@type": "ContactPoint",
           "telephone": "+211-926-006-202",
-          "contactType": "Customer Service"
+          "contactType": "Customer Service",
+          "areaServed": "SS"
         }
       }
     </script>
   </head>
 
-  <body>
+  <body class="fonts-loading">
+    <!-- Enhanced NoScript Content -->
     <noscript>
-      <div style="text-align:center;padding:2rem;background:#f8f9fa;color:#333;">
-        <h2>JavaScript Required</h2>
-        <p>This website requires JavaScript to function properly. Please enable it in your browser settings.</p>
+      <div style="text-align:center;padding:3rem 1rem;background:linear-gradient(135deg,#1e40af,#1e3a8a);color:white;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+        <div style="max-width:600px;">
+          <h1 style="font-size:2.5rem;margin-bottom:1rem;color:white;">Heavenly Nature Ministry</h1>
+          <h2 style="font-size:1.5rem;margin-bottom:1.5rem;color:#93c5fd;">JavaScript Required</h2>
+          <p style="font-size:1.125rem;margin-bottom:2rem;line-height:1.7;">
+            Our website requires JavaScript to provide the best experience. Please enable JavaScript in your browser settings to continue.
+          </p>
+          <div style="background:rgba(255,255,255,0.1);padding:1.5rem;border-radius:8px;text-align:left;">
+            <h3 style="margin-top:0;color:#bfdbfe;">How to enable JavaScript:</h3>
+            <ul style="margin-bottom:0;">
+              <li><strong>Chrome:</strong> Settings → Privacy and Security → Site Settings → JavaScript</li>
+              <li><strong>Firefox:</strong> Options → Privacy & Security → Permissions → Enable JavaScript</li>
+              <li><strong>Safari:</strong> Preferences → Security → Enable JavaScript</li>
+              <li><strong>Edge:</strong> Settings → Cookies and site permissions → JavaScript</li>
+            </ul>
+          </div>
+          <p style="margin-top:2rem;color:#93c5fd;">
+            Contact us: <strong>+211-926-006-202</strong> | Juba, South Sudan
+          </p>
+        </div>
       </div>
     </noscript>
 
-    <div id="root"></div>
+    <!-- Loading State (shown until React hydrates) -->
+    <div id="root">
+      <div class="app-loading">
+        <div style="text-align:center;">
+          <div class="loading-spinner"></div>
+          <p style="margin-top:1rem;color:#4b5563;font-weight:500;">Loading Heavenly Nature Ministry...</p>
+        </div>
+      </div>
+    </div>
 
-    <!-- Entry Script -->
-    <script type="module" src="/src/main.jsx"></script>
+    <!-- Performance & Analytics Scripts (non-blocking) -->
+    <script>
+      // Remove loading class when fonts load
+      document.fonts.ready.then(function() {
+        document.body.classList.remove('fonts-loading');
+      });
+
+      // Performance monitoring
+      window.addEventListener('load', function() {
+        // Log performance metrics
+        if ('performance' in window) {
+          const perfData = window.performance.timing;
+          const loadTime = perfData.loadEventEnd - perfData.navigationStart;
+          console.log('🚀 Page loaded in', loadTime, 'ms');
+        }
+      });
+
+      // Error tracking
+      window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+      });
+    </script>
+
+    <!-- Entry Script (deferred for better performance) -->
+    <script type="module" src="/src/main.jsx" defer></script>
+
+    <!-- Fallback for module support -->
+    <script nomodule>
+      document.getElementById('root').innerHTML = `
+        <div style="text-align:center;padding:3rem 1rem;">
+          <h2>Browser Update Required</h2>
+          <p>Your browser doesn't support modern JavaScript features. Please update to a modern browser like Chrome, Firefox, Safari, or Edge.</p>
+        </div>
+      `;
+    </script>
   </body>
 </html>
