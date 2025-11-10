@@ -236,6 +236,9 @@ class FacebookService {
   }
 }
 
-// Create and export a singleton instance
+// Create and export the class directly for named export
+export { FacebookService };
+
+// Also export a singleton instance as default for backward compatibility
 export const facebookService = new FacebookService();
 export default facebookService;
