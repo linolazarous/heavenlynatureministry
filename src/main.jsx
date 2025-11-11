@@ -1,9 +1,9 @@
+// src/main.jsx
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "./index.css";
 
-// Safe Stripe Initialization
 function initializeStripe() {
   if (typeof window === "undefined") return;
 
@@ -33,30 +33,33 @@ function initializeStripe() {
   document.head.appendChild(script);
 }
 
-// Global Fallback UI
 function ErrorFallback({ error }) {
   return (
-    <div style={{
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      textAlign: "center",
-      backgroundColor: "#f8f9fa",
-      color: "#333",
-      padding: "20px"
-    }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        backgroundColor: "#f8f9fa",
+        color: "#333",
+        padding: "20px",
+      }}
+    >
       <h1 style={{ color: "#dc2626" }}>Application Error</h1>
       <p>Something went wrong while loading Heavenly Nature Ministry.</p>
-      <pre style={{
-        background: "#f3f4f6",
-        padding: "10px",
-        borderRadius: "6px",
-        fontSize: "13px",
-        overflow: "auto",
-        maxWidth: "600px"
-      }}>
+      <pre
+        style={{
+          background: "#f3f4f6",
+          padding: "10px",
+          borderRadius: "6px",
+          fontSize: "13px",
+          overflow: "auto",
+          maxWidth: "600px",
+        }}
+      >
         {error?.toString()}
       </pre>
       <button
@@ -68,7 +71,7 @@ function ErrorFallback({ error }) {
           border: "none",
           padding: "10px 24px",
           borderRadius: "6px",
-          cursor: "pointer"
+          cursor: "pointer",
         }}
       >
         Reload Application
@@ -77,7 +80,6 @@ function ErrorFallback({ error }) {
   );
 }
 
-// Initialize App
 function initializeApp() {
   try {
     const rootEl = document.getElementById("root");
@@ -91,6 +93,7 @@ function initializeApp() {
         <App />
       </React.StrictMode>
     );
+
     console.log("✅ Heavenly Nature Ministry app initialized successfully");
   } catch (error) {
     console.error("❌ App initialization failed:", error);
@@ -101,6 +104,14 @@ function initializeApp() {
     }
   }
 }
+
+// ✅ Capture any unhandled async or render errors
+window.addEventListener("error", (event) => {
+  console.error("🌋 Global error caught:", event.error);
+});
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("🌋 Unhandled Promise rejection:", event.reason);
+});
 
 // Run after DOM ready
 if (document.readyState === "loading") {
