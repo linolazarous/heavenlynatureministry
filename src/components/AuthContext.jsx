@@ -12,12 +12,20 @@ import { magic } from '../services/auth';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Environment variable check
+const MAGIC_KEY = import.meta.env.VITE_MAGIC_PUBLISHABLE_KEY || process.env.REACT_APP_MAGIC_PUBLISHABLE_KEY;
+
+if (!MAGIC_KEY) {
+  console.error('Magic publishable key is missing. Check your environment variables.');
+}
+
 const ERROR_MESSAGES = {
   AUTH_CHECK_FAILED: 'Unable to verify authentication status.',
   LOGIN_FAILED: 'Login failed. Please try again.',
   LOGOUT_FAILED: 'Logout failed. Please try again.',
   REFRESH_FAILED: 'Failed to refresh user data.',
   TOKEN_FAILED: 'Failed to retrieve authentication token.',
+  MAGIC_NOT_READY: 'Authentication service is not ready. Please refresh the page.',
 };
 
 const SUCCESS_MESSAGES = {
@@ -62,22 +70,44 @@ export function AuthProvider({ children }) {
     );
   }, []);
 
-  const hasMagicUser = () =>
-    !!(magic && magic.user && typeof magic.user === 'object');
+  const hasMagicUser = useCallback(() => {
+    return !!(magic && magic.user && typeof magic.user === 'object');
+  }, []);
 
   const checkAuthStatus = useCallback(
     async (retryCount = 0) => {
       const MAX_RETRIES = 2;
 
       try {
+        // Enhanced magic instance checking
+        if (!magic) {
+          console.warn('Magic instance is null or undefined');
+          safeSetAuthState({ 
+            user: null, 
+            isLoading: false, 
+            isAuthenticated: false 
+          });
+          return;
+        }
+
         if (!hasMagicUser() || typeof magic.user.isLoggedIn !== 'function') {
-          safeSetAuthState({ isLoading: false });
+          console.warn('Magic user methods not available');
+          safeSetAuthState({ 
+            user: null, 
+            isLoading: false, 
+            isAuthenticated: false 
+          });
           return;
         }
 
         const isLoggedIn = await magic.user.isLoggedIn();
+        
         if (isLoggedIn) {
-          const userData = await magic.user.getMetadata().catch(() => null);
+          const userData = await magic.user.getMetadata().catch((err) => {
+            console.warn('Failed to get user metadata:', err);
+            return null;
+          });
+          
           safeSetAuthState({
             user: userData,
             isLoading: false,
@@ -91,6 +121,8 @@ export function AuthProvider({ children }) {
           });
         }
       } catch (err) {
+        console.error('Auth check error:', err);
+        
         if (retryCount < MAX_RETRIES) {
           setTimeout(() => {
             if (isMounted.current) checkAuthStatus(retryCount + 1);
@@ -101,15 +133,36 @@ export function AuthProvider({ children }) {
             isLoading: false,
             isAuthenticated: false,
           });
-          toast.error(ERROR_MESSAGES.AUTH_CHECK_FAILED);
+          // Don't show toast for initial auth check to avoid spam
+          if (retryCount > 0) {
+            toast.error(ERROR_MESSAGES.AUTH_CHECK_FAILED);
+          }
         }
       }
     },
-    [safeSetAuthState]
+    [safeSetAuthState, hasMagicUser]
   );
 
+  // Improved initialization with delay for Magic to load
   useEffect(() => {
-    checkAuthStatus();
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      if (!mounted) return;
+      
+      // Wait a brief moment to ensure Magic is fully initialized
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (mounted) {
+        await checkAuthStatus();
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, [checkAuthStatus]);
 
   const login = useCallback(
@@ -119,8 +172,8 @@ export function AuthProvider({ children }) {
         throw new Error('Invalid email address.');
       }
 
-      if (!hasMagicUser() || typeof magic.auth?.loginWithMagicLink !== 'function') {
-        toast.error(ERROR_MESSAGES.LOGIN_FAILED);
+      if (!magic || !hasMagicUser() || typeof magic.auth?.loginWithMagicLink !== 'function') {
+        toast.error(ERROR_MESSAGES.MAGIC_NOT_READY);
         throw new Error('Magic auth not available.');
       }
 
@@ -153,11 +206,12 @@ export function AuthProvider({ children }) {
         return userData;
       } catch (err) {
         safeSetAuthState({ isLoading: false });
+        console.error('Login error:', err);
         toast.error(ERROR_MESSAGES.LOGIN_FAILED);
         throw err;
       }
     },
-    [navigate, location, safeSetAuthState]
+    [navigate, location, safeSetAuthState, hasMagicUser]
   );
 
   const logout = useCallback(async () => {
@@ -179,7 +233,8 @@ export function AuthProvider({ children }) {
       if (isMounted.current) {
         navigate('/login', { state: { from: location.pathname }, replace: true });
       }
-    } catch {
+    } catch (err) {
+      console.error('Logout error:', err);
       safeSetAuthState({
         user: null,
         isLoading: false,
@@ -187,7 +242,7 @@ export function AuthProvider({ children }) {
       });
       toast.error(ERROR_MESSAGES.LOGOUT_FAILED);
     }
-  }, [navigate, location, safeSetAuthState]);
+  }, [navigate, location, safeSetAuthState, hasMagicUser]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -200,13 +255,14 @@ export function AuthProvider({ children }) {
 
       return userData;
     } catch (err) {
+      console.error('Refresh user error:', err);
       if (err?.message?.toLowerCase().includes('not logged in')) {
         safeSetAuthState({ user: null, isAuthenticated: false });
       }
       toast.error(ERROR_MESSAGES.REFRESH_FAILED);
       throw err;
     }
-  }, [safeSetAuthState]);
+  }, [safeSetAuthState, hasMagicUser]);
 
   const getToken = useCallback(
     async (options = {}) => {
@@ -220,7 +276,8 @@ export function AuthProvider({ children }) {
         const token = await magic.user.getIdToken();
         if (!token) throw new Error('No token received');
         return token;
-      } catch {
+      } catch (err) {
+        console.error('Get token error:', err);
         if (forceRefresh) {
           try {
             await refreshUser();
@@ -232,14 +289,18 @@ export function AuthProvider({ children }) {
         return null;
       }
     },
-    [refreshUser]
+    [refreshUser, hasMagicUser]
   );
 
   // Auto-logout on critical auth error event
   useEffect(() => {
     const handleAuthError = (event) => {
-      if (event?.detail?.type === 'AUTH_ERROR') logout();
+      if (event?.detail?.type === 'AUTH_ERROR') {
+        console.warn('Auth error detected, logging out...');
+        logout();
+      }
     };
+    
     window.addEventListener('authError', handleAuthError);
     return () => window.removeEventListener('authError', handleAuthError);
   }, [logout]);
@@ -247,25 +308,37 @@ export function AuthProvider({ children }) {
   // Token refresh every 14 min
   useEffect(() => {
     if (!authState.isAuthenticated) return;
+    
     const interval = setInterval(() => {
       getToken({ forceRefresh: true }).catch(() => {});
     }, 14 * 60 * 1000);
+    
     return () => clearInterval(interval);
   }, [authState.isAuthenticated, getToken]);
 
   const contextValue = React.useMemo(
-    () => ({ ...authState, login, logout, refreshUser, getToken }),
+    () => ({ 
+      ...authState, 
+      login, 
+      logout, 
+      refreshUser, 
+      getToken 
+    }),
     [authState, login, logout, refreshUser, getToken]
   );
 
   return (
-    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
   return context;
 }
 
@@ -276,9 +349,13 @@ export function useRequireAuth(redirectPath = '/login') {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate(redirectPath, { state: { from: location.pathname } });
+      navigate(redirectPath, { 
+        state: { from: location.pathname } 
+      });
     }
   }, [isAuthenticated, isLoading, navigate, redirectPath, location]);
 
   return { isAuthenticated, isLoading };
 }
+
+export default AuthContext;
