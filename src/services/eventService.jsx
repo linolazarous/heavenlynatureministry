@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Base API configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynature.org';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.onrender.com;
 
 // Event service
 export const eventService = {
