@@ -1,3 +1,4 @@
+// src/App.jsx
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import AOS from "aos";
@@ -69,7 +70,6 @@ class ErrorBoundary extends React.Component {
             <div className="text-red-500 text-6xl mb-4">⚠️</div>
             <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
             <p className="text-gray-600 mb-4">Please refresh the page or try again later.</p>
-
             <button
               onClick={() => window.location.reload()}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg w-full mb-2 transition-colors"
@@ -82,7 +82,6 @@ class ErrorBoundary extends React.Component {
             >
               Try Again
             </button>
-
             {process.env.NODE_ENV === "development" && this.state.error && (
               <details className="mt-4 text-left text-sm text-gray-500">
                 <summary className="cursor-pointer">Error Details</summary>
@@ -150,13 +149,8 @@ const AppContent = () => {
 
     const init = async () => {
       try {
-        AOS.init({
-          duration: 800,
-          once: true,
-          offset: 50,
-          easing: "ease-in-out-cubic",
-        });
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        AOS.init({ duration: 800, once: true, offset: 50, easing: "ease-in-out-cubic" });
+        await new Promise((r) => setTimeout(r, 100));
         if (mounted) {
           setIsInitialized(true);
           console.log("🎉 App initialized successfully");
@@ -182,27 +176,26 @@ const AppContent = () => {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            <Route path="/" element={<RouteWrapper component={Home} />} />
-            <Route path="/livestream" element={<RouteWrapper component={Livestream} />} />
-            <Route path="/donate" element={<RouteWrapper component={Donation} />} />
-            <Route path="/profile" element={<RouteWrapper component={Profile} />} />
-            <Route path="/privacy-policy" element={<RouteWrapper component={PrivacyPolicy} />} />
-            <Route path="/terms" element={<RouteWrapper component={Terms} />} />
-            <Route path="/contact" element={<RouteWrapper component={Contact} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              <Route path="/" element={<RouteWrapper component={Home} />} />
+              <Route path="/livestream" element={<RouteWrapper component={Livestream} />} />
+              <Route path="/donate" element={<RouteWrapper component={Donation} />} />
+              <Route path="/profile" element={<RouteWrapper component={Profile} />} />
+              <Route path="/privacy-policy" element={<RouteWrapper component={PrivacyPolicy} />} />
+              <Route path="/terms" element={<RouteWrapper component={Terms} />} />
+              <Route path="/contact" element={<RouteWrapper component={Contact} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </ErrorBoundary>
     </ErrorBoundary>
   );
 };
 
-/* ---------------------------------------------------
-   🧾 Root Export
---------------------------------------------------- */
 export default function App() {
   try {
     return <AppContent />;
