@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useEffect, lazy, Suspense } from "react";
+import React, { useState, useEffect, lazy, Suspense, useCallback } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -22,12 +22,11 @@ const safeLazyImport = (importFunc, name) =>
       console.error(`❌ Failed to load ${name} page:`, err);
       return {
         default: () => (
-          <div className="min-h-screen flex items-center justify-center text-center text-red-600">
-            <div>
-              <p className="text-lg font-semibold mb-2">Failed to load {name} page.</p>
-              <p className="text-gray-600">Please refresh or try again later.</p>
-            </div>
-          </div>
+          <ErrorFallback 
+            title={`Failed to load ${name}`}
+            message="Please refresh or try again later."
+            showRetry={true}
+          />
         ),
       };
     }
@@ -45,13 +44,51 @@ const Terms = safeLazyImport(() => import("./pages/Terms"), "Terms of Service");
 const Contact = safeLazyImport(() => import("./pages/Contact"), "Contact");
 
 /* ---------------------------------------------------
-   🧱 Global Error Boundary
+   🧱 Error Components
 --------------------------------------------------- */
+const ErrorFallback = ({ 
+  title = "Something went wrong", 
+  message = "Please refresh the page or try again later.", 
+  showRetry = true,
+  error = null 
+}) => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="bg-white shadow-lg rounded-2xl max-w-md w-full p-6 text-center">
+      <div className="text-red-500 text-6xl mb-4">⚠️</div>
+      <h1 className="text-2xl font-bold mb-2 text-gray-800">{title}</h1>
+      <p className="text-gray-600 mb-4">{message}</p>
+      <div className="space-y-2">
+        {showRetry && (
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg w-full transition-colors duration-200"
+          >
+            Reload Page
+          </button>
+        )}
+        {showRetry && (
+          <button
+            onClick={() => window.history.back()}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg w-full transition-colors duration-200"
+          >
+            Go Back
+          </button>
+        )}
+      </div>
+      {import.meta.env.DEV && error && (
+        <details className="mt-4 text-left text-sm text-gray-500">
+          <summary className="cursor-pointer font-medium">Error Details (Development)</summary>
+          <pre className="mt-2 bg-gray-100 p-3 rounded overflow-auto text-xs max-h-40">
+            {error instanceof Error ? error.stack : String(error)}
+          </pre>
+        </details>
+      )}
+    </div>
+  </div>
+);
+
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
-  }
+  state = { hasError: false, error: null };
 
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
@@ -59,40 +96,24 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("🔥 App Error Boundary caught:", error, errorInfo);
-    this.setState({ errorInfo });
+    // You can log to an error reporting service here
   }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  handleReload = () => {
+    window.location.reload();
+  };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-          <div className="bg-white shadow-lg rounded-2xl max-w-md w-full p-6 text-center">
-            <div className="text-red-500 text-6xl mb-4">⚠️</div>
-            <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
-            <p className="text-gray-600 mb-4">Please refresh the page or try again later.</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg w-full mb-2 transition-colors"
-            >
-              Reload Page
-            </button>
-            <button
-              onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
-              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg w-full transition-colors"
-            >
-              Try Again
-            </button>
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <details className="mt-4 text-left text-sm text-gray-500">
-                <summary className="cursor-pointer">Error Details</summary>
-                <pre className="mt-2 bg-gray-100 p-2 rounded overflow-auto text-xs">
-                  {this.state.error?.toString()}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
-              </details>
-            )}
-          </div>
-        </div>
+        <ErrorFallback 
+          error={this.state.error}
+          showRetry={true}
+        />
       );
     }
     return this.props.children;
@@ -100,20 +121,20 @@ class ErrorBoundary extends React.Component {
 }
 
 /* ---------------------------------------------------
-   🌀 Loading Fallback
+   🌀 Loading Components
 --------------------------------------------------- */
-const LoadingFallback = () => (
+const AppLoadingFallback = () => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
     <div className="text-center">
       <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-4"></div>
       <h2 className="text-xl font-semibold text-gray-800 mb-2">Heavenly Nature Ministry</h2>
-      <p className="text-gray-600 animate-pulse">Loading God’s blessings...</p>
+      <p className="text-gray-600 animate-pulse">Loading God's blessings...</p>
     </div>
   </div>
 );
 
 /* ---------------------------------------------------
-   🧩 Layout
+   🧩 Layout Components
 --------------------------------------------------- */
 const MainLayout = ({ children, showHeader = true, showFooter = true }) => (
   <div className="min-h-screen flex flex-col bg-white">
@@ -124,87 +145,115 @@ const MainLayout = ({ children, showHeader = true, showFooter = true }) => (
   </div>
 );
 
-/* ---------------------------------------------------
-   🛡️ Route Wrapper
---------------------------------------------------- */
 const RouteWrapper = ({ component: Component, layoutProps = {} }) => (
-  <ErrorBoundary>
-    <MainLayout {...layoutProps}>
-      <Suspense fallback={<LoadingSpinner />}>
-        <Component />
-      </Suspense>
-    </MainLayout>
-  </ErrorBoundary>
+  <MainLayout {...layoutProps}>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Component />
+    </Suspense>
+  </MainLayout>
 );
 
 /* ---------------------------------------------------
-   🌍 App Content
+   🌍 App Initialization Hook
 --------------------------------------------------- */
-const AppContent = () => {
+const useAppInitialization = () => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initError, setInitError] = useState(null);
 
   useEffect(() => {
     let mounted = true;
-    console.log("⚙️ Initializing Heavenly Nature Ministry app...");
+    let aosInitialized = false;
 
-    const init = async () => {
+    const initializeApp = async () => {
       try {
-        AOS.init({ duration: 800, once: true, offset: 50, easing: "ease-in-out-cubic" });
-        await new Promise((r) => setTimeout(r, 100));
+        console.log("⚙️ Initializing Heavenly Nature Ministry app...");
+
+        // Initialize AOS with better configuration
+        AOS.init({
+          duration: 800,
+          once: true,
+          offset: 50,
+          easing: "ease-in-out-cubic",
+          disable: window.innerWidth < 768, // Disable on mobile for performance
+        });
+        aosInitialized = true;
+
+        // Simulate any async initialization tasks
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         if (mounted) {
           setIsInitialized(true);
           console.log("🎉 App initialized successfully");
         }
-      } catch (err) {
-        console.error("❌ AOS init error:", err);
-        if (mounted) setIsInitialized(true);
+      } catch (error) {
+        console.error("❌ App initialization error:", error);
+        if (mounted) {
+          setInitError(error);
+          setIsInitialized(true); // Continue anyway
+        }
       }
     };
 
-    init();
+    initializeApp();
+
     return () => {
       mounted = false;
-      try {
-        AOS.refreshHard();
-      } catch (err) {
-        console.warn("AOS cleanup failed:", err);
+      if (aosInitialized) {
+        try {
+          AOS.refresh();
+        } catch (err) {
+          console.warn("AOS cleanup warning:", err);
+        }
       }
     };
   }, []);
 
-  if (!isInitialized) return <LoadingFallback />;
+  return { isInitialized, initError };
+};
+
+/* ---------------------------------------------------
+   🏠 App Content Component
+--------------------------------------------------- */
+const AppContent = () => {
+  const { isInitialized, initError } = useAppInitialization();
+
+  // Show loading state
+  if (!isInitialized) {
+    return <AppLoadingFallback />;
+  }
+
+  // Show initialization error (non-blocking)
+  if (initError) {
+    console.warn("App initialized with warnings:", initError);
+  }
 
   return (
-    <ErrorBoundary>
-      <ErrorBoundary>
-        <AuthProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<RouteWrapper component={Home} />} />
-              <Route path="/livestream" element={<RouteWrapper component={Livestream} />} />
-              <Route path="/donate" element={<RouteWrapper component={Donation} />} />
-              <Route path="/profile" element={<RouteWrapper component={Profile} />} />
-              <Route path="/privacy-policy" element={<RouteWrapper component={PrivacyPolicy} />} />
-              <Route path="/terms" element={<RouteWrapper component={Terms} />} />
-              <Route path="/contact" element={<RouteWrapper component={Contact} />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Router>
-        </AuthProvider>
-      </ErrorBoundary>
-    </ErrorBoundary>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<RouteWrapper component={Home} />} />
+          <Route path="/livestream" element={<RouteWrapper component={Livestream} />} />
+          <Route path="/donate" element={<RouteWrapper component={Donation} />} />
+          <Route path="/profile" element={<RouteWrapper component={Profile} />} />
+          <Route path="/privacy-policy" element={<RouteWrapper component={PrivacyPolicy} />} />
+          <Route path="/terms" element={<RouteWrapper component={Terms} />} />
+          <Route path="/contact" element={<RouteWrapper component={Contact} />} />
+          
+          {/* Redirect all unknown routes to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 
+/* ---------------------------------------------------
+   🚀 Main App Component
+--------------------------------------------------- */
 export default function App() {
-  try {
-    return <AppContent />;
-  } catch (error) {
-    console.error("🚨 Fatal App Render Error:", error);
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600 text-center">
-        <p>Critical initialization error. Please refresh the page.</p>
-      </div>
-    );
-  }
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
 }
