@@ -2,12 +2,20 @@
 import axios from 'axios';
 
 // API Configuration for Render
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+                     process.env.REACT_APP_API_URL || 
+                     'https://api.heavenlynatureministry.onrender.com';
+
+// Storage keys for consistency
+const STORAGE_KEYS = {
+  AUTH_TOKEN: 'auth_token',
+  USER_DATA: 'user'
+};
 
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000, // Increased timeout for better UX
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,53 +24,24 @@ const apiClient = axios.create({
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      // Server responded with error status
-      const { status, data } = error.response;
-      
-      switch (status) {
-        case 401:
-          // Unauthorized - clear local storage and redirect
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
-          window.dispatchEvent(new Event('unauthorized'));
-          break;
-        case 403:
-          // Forbidden - insufficient permissions
-          console.error('Access forbidden:', data.message);
-          break;
-        case 429:
-          // Rate limited
-          console.error('Rate limit exceeded:', data.message);
-          break;
-        case 500:
-          // Server error
-          console.error('Server error:', data.message);
-          break;
-        default:
-          console.error('API error:', data.message);
-      }
-    } else if (error.request) {
-      // Network error
-      console.error('Network error:', error.message);
-    } else {
-      // Request configuration error
-      console.error('Request error:', error.message);
+    if (error.response?.status === 401) {
+      // Auto-logout on unauthorized
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      window.dispatchEvent(new Event('unauthorized'));
     }
     
     return Promise.reject(error);
@@ -75,24 +54,15 @@ export const AuthAPI = {
    */
   async login(email, password) {
     try {
-      const response = await apiClient.post('/auth/login', {
-        email,
-        password
-      });
-      
+      const response = await apiClient.post('/auth/login', { email, password });
       const { user, token } = response.data;
       
-      // Store token and user data
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
+      this._storeAuthData(user, token);
       return { user, token };
     } catch (error) {
-      console.error('Login error:', error);
-      throw new Error(
-        error.response?.data?.message || 
-        'Invalid email or password. Please try again.'
-      );
+      const message = error.response?.data?.message || 
+                     'Invalid email or password. Please try again.';
+      throw new Error(message);
     }
   },
 
@@ -108,23 +78,18 @@ export const AuthAPI = {
       });
       
       const { user, token } = response.data;
-      
-      // Store token and user data
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
+      this._storeAuthData(user, token);
       return { user, token };
     } catch (error) {
-      console.error('Signup error:', error);
+      let message = 'Signup failed. Please try again.';
       
       if (error.response?.status === 409) {
-        throw new Error('An account with this email already exists.');
+        message = 'An account with this email already exists.';
+      } else if (error.response?.data?.message) {
+        message = error.response.data.message;
       }
       
-      throw new Error(
-        error.response?.data?.message ||
-        'Signup failed. Please try again.'
-      );
+      throw new Error(message);
     }
   },
 
@@ -136,10 +101,9 @@ export const AuthAPI = {
       const response = await apiClient.get('/auth/verify', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
       return response.data.user;
     } catch (error) {
-      console.error('Token verification error:', error);
+      this._clearAuthData();
       throw new Error('Session expired. Please log in again.');
     }
   },
@@ -149,10 +113,11 @@ export const AuthAPI = {
    */
   getCurrentUser() {
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = localStorage.getItem(STORAGE_KEYS.USER_DATA);
       return userStr ? JSON.parse(userStr) : null;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error('Error parsing user data:', error);
+      this._clearAuthData();
       return null;
     }
   },
@@ -165,13 +130,13 @@ export const AuthAPI = {
       const response = await apiClient.get(`/users/${userId}/profile`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
-      // Return basic profile if API fails
+      console.warn('Profile API unavailable, returning basic data');
       const currentUser = this.getCurrentUser();
       return {
-        name: currentUser?.name || '',
+        name: currentUser?.name || 'User',
         avatar: null,
-        bio: ''
+        bio: '',
+        joinDate: currentUser?.createdAt || new Date().toISOString()
       };
     }
   },
@@ -183,17 +148,18 @@ export const AuthAPI = {
     try {
       const response = await apiClient.put(`/users/${userId}/profile`, profileData);
       
-      // Update stored user data
+      // Update stored user data if it's the current user
       const currentUser = this.getCurrentUser();
-      if (currentUser && currentUser.id === userId) {
-        const updatedUser = { ...currentUser, ...response.data };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+      if (currentUser?.id === userId) {
+        const updatedUser = { ...currentUser, ...profileData };
+        localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
       }
       
       return response.data;
     } catch (error) {
-      console.error('Error updating user profile:', error);
-      throw new Error('Failed to update profile. Please try again.');
+      const message = error.response?.data?.message || 
+                     'Failed to update profile. Please try again.';
+      throw new Error(message);
     }
   },
 
@@ -205,8 +171,10 @@ export const AuthAPI = {
       const response = await apiClient.post('/auth/forgot-password', { email });
       return response.data;
     } catch (error) {
-      console.error('Password reset request error:', error);
-      throw new Error('Failed to send reset email. Please try again.');
+      throw new Error(
+        error.response?.data?.message ||
+        'Failed to send reset email. Please try again.'
+      );
     }
   },
 
@@ -215,20 +183,15 @@ export const AuthAPI = {
    */
   async changePassword(currentPassword, newPassword) {
     try {
-      const user = this.getCurrentUser();
-      if (!user) {
-        throw new Error('No user logged in');
-      }
-
       const response = await apiClient.post('/auth/change-password', {
         currentPassword,
         newPassword
       });
-      
       return response.data;
     } catch (error) {
-      console.error('Password change error:', error);
-      throw new Error('Failed to change password. Please try again.');
+      const message = error.response?.data?.message || 
+                     'Failed to change password. Please try again.';
+      throw new Error(message);
     }
   },
 
@@ -237,15 +200,11 @@ export const AuthAPI = {
    */
   async logout() {
     try {
-      // Call logout endpoint if needed
       await apiClient.post('/auth/logout');
     } catch (error) {
-      console.warn('Logout API call failed:', error);
+      console.warn('Logout API call failed, clearing local data anyway');
     } finally {
-      // Always clear local storage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
-      return { success: true, message: 'Logged out successfully.' };
+      this._clearAuthData();
     }
   },
 
@@ -253,8 +212,7 @@ export const AuthAPI = {
    * Check if user has specific role
    */
   hasRole(user, role) {
-    if (!user) return false;
-    return user.role === role || user.role === 'admin';
+    return user?.role === role || user?.role === 'admin';
   },
 
   /**
@@ -268,13 +226,22 @@ export const AuthAPI = {
    * Check if user is authenticated
    */
   isAuthenticated() {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     const user = this.getCurrentUser();
     return !!(token && user);
+  },
+
+  // Private helper methods
+  _storeAuthData(user, token) {
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+  },
+
+  _clearAuthData() {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.USER_DATA);
   }
 };
 
-// Export the configured axios instance for other services
 export { apiClient };
-
 export default AuthAPI;
