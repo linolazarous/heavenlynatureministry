@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base API configuration for Render deployment
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.com';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.heavenlynatureministry.onrender.com';
 
 // Create axios instance with default config
 const ministryClient = axios.create({
