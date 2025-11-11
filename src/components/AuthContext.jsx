@@ -12,20 +12,12 @@ import { magic } from '../services/auth';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Environment variable check
-const MAGIC_KEY = import.meta.env.VITE_MAGIC_PUBLISHABLE_KEY || process.env.REACT_APP_MAGIC_PUBLISHABLE_KEY;
-
-if (!MAGIC_KEY) {
-  console.error('Magic publishable key is missing. Check your environment variables.');
-}
-
 const ERROR_MESSAGES = {
   AUTH_CHECK_FAILED: 'Unable to verify authentication status.',
   LOGIN_FAILED: 'Login failed. Please try again.',
   LOGOUT_FAILED: 'Logout failed. Please try again.',
   REFRESH_FAILED: 'Failed to refresh user data.',
   TOKEN_FAILED: 'Failed to retrieve authentication token.',
-  MAGIC_NOT_READY: 'Authentication service is not ready. Please refresh the page.',
 };
 
 const SUCCESS_MESSAGES = {
@@ -70,18 +62,25 @@ export function AuthProvider({ children }) {
     );
   }, []);
 
+  // Enhanced magic instance checking
   const hasMagicUser = useCallback(() => {
-    return !!(magic && magic.user && typeof magic.user === 'object');
+    try {
+      return !!(magic && magic.user && typeof magic.user === 'object');
+    } catch (error) {
+      console.warn('Magic instance check failed:', error);
+      return false;
+    }
   }, []);
 
+  // Fixed checkAuthStatus function
   const checkAuthStatus = useCallback(
     async (retryCount = 0) => {
       const MAX_RETRIES = 2;
 
       try {
-        // Enhanced magic instance checking
+        // Enhanced safety checks
         if (!magic) {
-          console.warn('Magic instance is null or undefined');
+          console.warn('Magic instance not available');
           safeSetAuthState({ 
             user: null, 
             isLoading: false, 
@@ -90,7 +89,8 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        if (!hasMagicUser() || typeof magic.user.isLoggedIn !== 'function') {
+        // Check if required methods exist
+        if (!magic.user || typeof magic.user.isLoggedIn !== 'function') {
           console.warn('Magic user methods not available');
           safeSetAuthState({ 
             user: null, 
@@ -133,37 +133,49 @@ export function AuthProvider({ children }) {
             isLoading: false,
             isAuthenticated: false,
           });
-          // Don't show toast for initial auth check to avoid spam
+          // Don't show toast for initial auth check
           if (retryCount > 0) {
             toast.error(ERROR_MESSAGES.AUTH_CHECK_FAILED);
           }
         }
       }
     },
-    [safeSetAuthState, hasMagicUser]
+    [safeSetAuthState]
   );
 
-  // Improved initialization with delay for Magic to load
+  // Improved initialization with error boundary
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       if (!mounted) return;
       
-      // Wait a brief moment to ensure Magic is fully initialized
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (mounted) {
+      try {
+        // Small delay to ensure everything is loaded
+        await new Promise(resolve => setTimeout(resolve, 50));
         await checkAuthStatus();
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+        if (mounted) {
+          safeSetAuthState({ 
+            user: null, 
+            isLoading: false, 
+            isAuthenticated: false 
+          });
+        }
       }
     };
 
-    initializeAuth();
+    // Use setTimeout to avoid blocking the main thread
+    const timer = setTimeout(() => {
+      initializeAuth();
+    }, 0);
 
     return () => {
       mounted = false;
+      clearTimeout(timer);
     };
-  }, [checkAuthStatus]);
+  }, [checkAuthStatus, safeSetAuthState]);
 
   const login = useCallback(
     async (email, redirectPath = '/') => {
@@ -172,8 +184,8 @@ export function AuthProvider({ children }) {
         throw new Error('Invalid email address.');
       }
 
-      if (!magic || !hasMagicUser() || typeof magic.auth?.loginWithMagicLink !== 'function') {
-        toast.error(ERROR_MESSAGES.MAGIC_NOT_READY);
+      if (!hasMagicUser() || typeof magic.auth?.loginWithMagicLink !== 'function') {
+        toast.error('Authentication service not available.');
         throw new Error('Magic auth not available.');
       }
 
@@ -193,11 +205,9 @@ export function AuthProvider({ children }) {
           isAuthenticated: !!userData,
         });
 
-        toast.success(
-          userData?.email
-            ? SUCCESS_MESSAGES.LOGIN_SUCCESS(userData.email)
-            : 'Logged in successfully.'
-        );
+        if (userData?.email) {
+          toast.success(SUCCESS_MESSAGES.LOGIN_SUCCESS(userData.email));
+        }
 
         if (isMounted.current) {
           navigate(location.state?.from || redirectPath, { replace: true });
@@ -291,30 +301,6 @@ export function AuthProvider({ children }) {
     },
     [refreshUser, hasMagicUser]
   );
-
-  // Auto-logout on critical auth error event
-  useEffect(() => {
-    const handleAuthError = (event) => {
-      if (event?.detail?.type === 'AUTH_ERROR') {
-        console.warn('Auth error detected, logging out...');
-        logout();
-      }
-    };
-    
-    window.addEventListener('authError', handleAuthError);
-    return () => window.removeEventListener('authError', handleAuthError);
-  }, [logout]);
-
-  // Token refresh every 14 min
-  useEffect(() => {
-    if (!authState.isAuthenticated) return;
-    
-    const interval = setInterval(() => {
-      getToken({ forceRefresh: true }).catch(() => {});
-    }, 14 * 60 * 1000);
-    
-    return () => clearInterval(interval);
-  }, [authState.isAuthenticated, getToken]);
 
   const contextValue = React.useMemo(
     () => ({ 
