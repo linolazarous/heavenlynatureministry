@@ -7,7 +7,6 @@ import "aos/dist/aos.css";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
-import { AuthProvider } from "./components/AuthContext";
 import LoadingSpinner from "./components/LoadingSpinner";
 
 /* -----------------------------
@@ -99,15 +98,12 @@ const AppContent = () => {
 };
 
 /* -----------------------------
-   Export App
+   Export App (NO AUTH)
 -------------------------------- */
 export default function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={<LoadingSpinner />}>
-        <AppContent />
-      </Suspense>
-    </AuthProvider>
+    <Suspense fallback={<LoadingSpinner />}>
+      <AppContent />
+    </Suspense>
   );
 }
-
