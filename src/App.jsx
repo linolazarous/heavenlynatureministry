@@ -22,7 +22,6 @@ const SafeLazy = (importFunc) =>
   );
 
 const Home = SafeLazy(() => import("./pages/Home"));
-const Profile = SafeLazy(() => import("./pages/Profile"));
 const Livestream = SafeLazy(() => import("./pages/Livestream"));
 const Donation = SafeLazy(() => import("./pages/Donation"));
 const PrivacyPolicy = SafeLazy(() => import("./pages/PrivacyPolicy"));
@@ -60,11 +59,7 @@ const useInit = () => {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    AOS.init({
-      duration: 700,
-      once: true,
-      offset: 40,
-    });
+    AOS.init({ duration: 700, once: true, offset: 40 });
 
     const timer = setTimeout(() => setReady(true), 200);
     return () => clearTimeout(timer);
@@ -87,7 +82,6 @@ const AppContent = () => {
         <Route path="/" element={<Layout><Home /></Layout>} />
         <Route path="/livestream" element={<Layout><Livestream /></Layout>} />
         <Route path="/donate" element={<Layout><Donation /></Layout>} />
-        <Route path="/profile" element={<Layout><Profile /></Layout>} />
         <Route path="/privacy-policy" element={<Layout><PrivacyPolicy /></Layout>} />
         <Route path="/terms" element={<Layout><Terms /></Layout>} />
         <Route path="/contact" element={<Layout><Contact /></Layout>} />
