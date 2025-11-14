@@ -1,23 +1,20 @@
 import React from 'react';
 import { useAuth } from '../auth/useAuth';
-import ProfileCard from '../components/ProfileCard';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Profile = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
-  if (isLoading) {
-    return <LoadingSpinner message="Loading profile..." />;
+  if (!isAuthenticated) {
+    return <div className="p-6">Please login to access your profile.</div>;
   }
 
-  if (!user) {
-    return <div className="p-6">Please log in to view your profile.</div>;
-  }
+  if (!user) return <LoadingSpinner message="Loading profile..." />;
 
   return (
     <div className="profile-page p-6">
-      <ProfileCard user={user} />
-      {/* Add donation stats or events later */}
+      <h1 className="text-2xl font-bold mb-2">{user.name}</h1>
+      <p>{user.email}</p>
     </div>
   );
 };
