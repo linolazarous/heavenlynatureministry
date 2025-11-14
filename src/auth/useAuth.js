@@ -3,20 +3,14 @@ import { authService } from './authService';
 
 export const useAuth = () => {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setUser(authService.getCurrentUser());
+  }, []);
 
   const login = useCallback(async (email, password) => {
-    try {
-      setIsLoading(true);
-      const loggedInUser = await authService.login(email, password);
-      setUser(loggedInUser);
-      return { success: true };
-    } catch (err) {
-      console.error('Login failed', err);
-      return { success: false, error: err.response?.data?.message || err.message };
-    } finally {
-      setIsLoading(false);
-    }
+    const u = await authService.login(email, password);
+    setUser(u);
   }, []);
 
   const logout = useCallback(() => {
@@ -24,11 +18,5 @@ export const useAuth = () => {
     setUser(null);
   }, []);
 
-  useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-    setIsLoading(false);
-  }, []);
-
-  return { user, isLoading, login, logout, isAuthenticated: !!user };
+  return { user, isAuthenticated: !!user, login, logout };
 };
