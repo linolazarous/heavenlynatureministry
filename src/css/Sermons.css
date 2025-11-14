@@ -1,0 +1,50 @@
+/* src/css/Sermons.css */
+
+.sermons-page {
+  padding: 2rem;
+  background-color: #fff;
+  min-height: 100vh;
+}
+
+.sermons-page h1 {
+  text-align: center;
+  font-size: 2rem;
+  color: #2c3e50;
+  margin-bottom: 2rem;
+}
+
+.sermons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.sermon-card {
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: transform 0.2s ease-in-out;
+}
+
+.sermon-card:hover {
+  transform: translateY(-5px);
+}
+
+.sermon-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.sermon-card h3 {
+  margin: 1rem;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.sermon-card p {
+  margin: 0 1rem 1rem;
+  font-size: 0.95rem;
+  color: #555;
+}
