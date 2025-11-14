@@ -4,11 +4,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import AOS from "aos";
 import "aos/dist/aos.css";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import ScrollToTop from "../components/ScrollToTop";
-import { AuthProvider } from "../components/AuthContext";
-import LoadingSpinner from "../components/LoadingSpinner";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import ScrollToTop from "./components/ScrollToTop";
+import { AuthProvider } from "./components/AuthContext";
+import LoadingSpinner from "./components/LoadingSpinner";
 
 /* -----------------------------
    Lazy Imports (Safe Wrapper)
@@ -110,3 +110,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+
