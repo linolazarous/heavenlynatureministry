@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useEffect, lazy, Suspense, useCallback } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -10,251 +10,103 @@ import ScrollToTop from "../components/ScrollToTop";
 import { AuthProvider } from "../components/AuthContext";
 import LoadingSpinner from "../components/LoadingSpinner";
 
-/* ---------------------------------------------------
-   🧩 Safe Lazy Import Helper
---------------------------------------------------- */
-const safeLazyImport = (importFunc, name) =>
-  lazy(async () => {
-    try {
-      const module = await importFunc();
-      return module;
-    } catch (err) {
-      console.error(`❌ Failed to load ${name} page:`, err);
-      return {
-        default: () => (
-          <ErrorFallback 
-            title={`Failed to load ${name}`}
-            message="Please refresh or try again later."
-            showRetry={true}
-          />
-        ),
-      };
-    }
-  });
+/* -----------------------------
+   Lazy Imports (Safe Wrapper)
+-------------------------------- */
+const SafeLazy = (importFunc) =>
+  lazy(() =>
+    importFunc().catch(() => ({
+      default: () => (
+        <CenteredError message="Failed to load page. Please refresh and try again." />
+      ),
+    }))
+  );
 
-/* ---------------------------------------------------
-   🧭 Lazy Pages
---------------------------------------------------- */
-const Home = safeLazyImport(() => import("./pages/Home"), "Home");
-const Profile = safeLazyImport(() => import("./pages/Profile"), "Profile");
-const Livestream = safeLazyImport(() => import("./pages/Livestream"), "Livestream");
-const Donation = safeLazyImport(() => import("./pages/Donation"), "Donation");
-const PrivacyPolicy = safeLazyImport(() => import("./pages/PrivacyPolicy"), "Privacy Policy");
-const Terms = safeLazyImport(() => import("./pages/Terms"), "Terms of Service");
-const Contact = safeLazyImport(() => import("./pages/Contact"), "Contact");
+const Home = SafeLazy(() => import("./pages/Home"));
+const Profile = SafeLazy(() => import("./pages/Profile"));
+const Livestream = SafeLazy(() => import("./pages/Livestream"));
+const Donation = SafeLazy(() => import("./pages/Donation"));
+const PrivacyPolicy = SafeLazy(() => import("./pages/PrivacyPolicy"));
+const Terms = SafeLazy(() => import("./pages/Terms"));
+const Contact = SafeLazy(() => import("./pages/Contact"));
 
-/* ---------------------------------------------------
-   🧱 Error Components
---------------------------------------------------- */
-const ErrorFallback = ({ 
-  title = "Something went wrong", 
-  message = "Please refresh the page or try again later.", 
-  showRetry = true,
-  error = null 
-}) => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-    <div className="bg-white shadow-lg rounded-2xl max-w-md w-full p-6 text-center">
-      <div className="text-red-500 text-6xl mb-4">⚠️</div>
-      <h1 className="text-2xl font-bold mb-2 text-gray-800">{title}</h1>
-      <p className="text-gray-600 mb-4">{message}</p>
-      <div className="space-y-2">
-        {showRetry && (
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg w-full transition-colors duration-200"
-          >
-            Reload Page
-          </button>
-        )}
-        {showRetry && (
-          <button
-            onClick={() => window.history.back()}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg w-full transition-colors duration-200"
-          >
-            Go Back
-          </button>
-        )}
-      </div>
-      {import.meta.env.DEV && error && (
-        <details className="mt-4 text-left text-sm text-gray-500">
-          <summary className="cursor-pointer font-medium">Error Details (Development)</summary>
-          <pre className="mt-2 bg-gray-100 p-3 rounded overflow-auto text-xs max-h-40">
-            {error instanceof Error ? error.stack : String(error)}
-          </pre>
-        </details>
-      )}
+/* -----------------------------
+   Error Fallback Component
+-------------------------------- */
+const CenteredError = ({ message }) => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 text-center p-6">
+    <div>
+      <div className="text-red-500 text-5xl mb-3">⚠️</div>
+      <p className="text-xl font-semibold text-gray-700">{message}</p>
     </div>
   </div>
 );
 
-class ErrorBoundary extends React.Component {
-  state = { hasError: false, error: null };
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    console.error("🔥 App Error Boundary caught:", error, errorInfo);
-    // You can log to an error reporting service here
-  }
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null });
-  };
-
-  handleReload = () => {
-    window.location.reload();
-  };
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <ErrorFallback 
-          error={this.state.error}
-          showRetry={true}
-        />
-      );
-    }
-    return this.props.children;
-  }
-}
-
-/* ---------------------------------------------------
-   🌀 Loading Components
---------------------------------------------------- */
-const AppLoadingFallback = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-4"></div>
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">Heavenly Nature Ministry</h2>
-      <p className="text-gray-600 animate-pulse">Loading God's blessings...</p>
-    </div>
-  </div>
-);
-
-/* ---------------------------------------------------
-   🧩 Layout Components
---------------------------------------------------- */
-const MainLayout = ({ children, showHeader = true, showFooter = true }) => (
+/* -----------------------------
+   Main Layout Wrapper
+-------------------------------- */
+const Layout = ({ children }) => (
   <div className="min-h-screen flex flex-col bg-white">
-    {showHeader && <Header />}
-    <main className="flex-1 w-full">{children}</main>
-    {showFooter && <Footer />}
+    <Header />
+    <main className="flex-1">{children}</main>
+    <Footer />
     <ScrollToTop />
   </div>
 );
 
-const RouteWrapper = ({ component: Component, layoutProps = {} }) => (
-  <MainLayout {...layoutProps}>
-    <Suspense fallback={<LoadingSpinner />}>
-      <Component />
-    </Suspense>
-  </MainLayout>
-);
-
-/* ---------------------------------------------------
-   🌍 App Initialization Hook
---------------------------------------------------- */
-const useAppInitialization = () => {
-  const [isInitialized, setIsInitialized] = useState(false);
-  const [initError, setInitError] = useState(null);
+/* -----------------------------
+   App Initialization (AOS)
+-------------------------------- */
+const useInit = () => {
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    let aosInitialized = false;
+    AOS.init({
+      duration: 700,
+      once: true,
+      offset: 40,
+    });
 
-    const initializeApp = async () => {
-      try {
-        console.log("⚙️ Initializing Heavenly Nature Ministry app...");
-
-        // Initialize AOS with better configuration
-        AOS.init({
-          duration: 800,
-          once: true,
-          offset: 50,
-          easing: "ease-in-out-cubic",
-          disable: window.innerWidth < 768, // Disable on mobile for performance
-        });
-        aosInitialized = true;
-
-        // Simulate any async initialization tasks
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        if (mounted) {
-          setIsInitialized(true);
-          console.log("🎉 App initialized successfully");
-        }
-      } catch (error) {
-        console.error("❌ App initialization error:", error);
-        if (mounted) {
-          setInitError(error);
-          setIsInitialized(true); // Continue anyway
-        }
-      }
-    };
-
-    initializeApp();
-
-    return () => {
-      mounted = false;
-      if (aosInitialized) {
-        try {
-          AOS.refresh();
-        } catch (err) {
-          console.warn("AOS cleanup warning:", err);
-        }
-      }
-    };
+    const timer = setTimeout(() => setReady(true), 200);
+    return () => clearTimeout(timer);
   }, []);
 
-  return { isInitialized, initError };
+  return ready;
 };
 
-/* ---------------------------------------------------
-   🏠 App Content Component
---------------------------------------------------- */
+/* -----------------------------
+   Main App Content
+-------------------------------- */
 const AppContent = () => {
-  const { isInitialized, initError } = useAppInitialization();
+  const initialized = useInit();
 
-  // Show loading state
-  if (!isInitialized) {
-    return <AppLoadingFallback />;
-  }
-
-  // Show initialization error (non-blocking)
-  if (initError) {
-    console.warn("App initialized with warnings:", initError);
-  }
+  if (!initialized) return <LoadingSpinner />;
 
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<RouteWrapper component={Home} />} />
-          <Route path="/livestream" element={<RouteWrapper component={Livestream} />} />
-          <Route path="/donate" element={<RouteWrapper component={Donation} />} />
-          <Route path="/profile" element={<RouteWrapper component={Profile} />} />
-          <Route path="/privacy-policy" element={<RouteWrapper component={PrivacyPolicy} />} />
-          <Route path="/terms" element={<RouteWrapper component={Terms} />} />
-          <Route path="/contact" element={<RouteWrapper component={Contact} />} />
-          
-          {/* Redirect all unknown routes to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/livestream" element={<Layout><Livestream /></Layout>} />
+        <Route path="/donate" element={<Layout><Donation /></Layout>} />
+        <Route path="/profile" element={<Layout><Profile /></Layout>} />
+        <Route path="/privacy-policy" element={<Layout><PrivacyPolicy /></Layout>} />
+        <Route path="/terms" element={<Layout><Terms /></Layout>} />
+        <Route path="/contact" element={<Layout><Contact /></Layout>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
   );
 };
 
-/* ---------------------------------------------------
-   🚀 Main App Component
---------------------------------------------------- */
+/* -----------------------------
+   Export App
+-------------------------------- */
 export default function App() {
   return (
-    <ErrorBoundary>
-      <AppContent />
-    </ErrorBoundary>
+    <AuthProvider>
+      <Suspense fallback={<LoadingSpinner />}>
+        <AppContent />
+      </Suspense>
+    </AuthProvider>
   );
 }
-
