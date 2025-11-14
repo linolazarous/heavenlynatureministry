@@ -148,7 +148,7 @@ const Home = ({ className = '' }) => {
     }
   ], [isLive]);
 
-  // Load data on component mount
+  // Load data on mount
   useEffect(() => {
     fetchHomeData();
   }, [fetchHomeData]);
@@ -170,7 +170,6 @@ const Home = ({ className = '' }) => {
 
   return (
     <div className={`home-page ${className}`}>
-      {/* Hero Section */}
       <ErrorBoundary>
         <HeroSection 
           title="Welcome to Heavenly Nature Ministry"
@@ -185,7 +184,6 @@ const Home = ({ className = '' }) => {
         />
       </ErrorBoundary>
 
-      {/* Error display */}
       {error && (
         <div className="home-error">
           <ErrorMessage 
@@ -198,7 +196,7 @@ const Home = ({ className = '' }) => {
       )}
 
       <main className="home-content">
-        {/* Impact Statistics */}
+        {/* Impact Section */}
         <section className="impact-section">
           <div className="container">
             <div className="section-header">
@@ -236,16 +234,12 @@ const Home = ({ className = '' }) => {
                 >
                   <div className="action-icon">
                     <action.icon />
-                    {action.featured && (
-                      <div className="live-pulse"></div>
-                    )}
+                    {action.featured && <div className="live-pulse"></div>}
                   </div>
                   <div className="action-content">
                     <h3>{action.title}</h3>
                     <p>{action.description}</p>
-                    {action.featured && (
-                      <span className="featured-badge">Live Now</span>
-                    )}
+                    {action.featured && <span className="featured-badge">Live Now</span>}
                   </div>
                 </a>
               ))}
@@ -254,17 +248,12 @@ const Home = ({ className = '' }) => {
         </section>
 
         <div className="content-grid container">
-          {/* Left Column */}
           <div className="content-column">
             {/* Daily Verse */}
             <section className="verse-section">
               <h2>Today's Word of Encouragement</h2>
               <ErrorBoundary>
-                <DailyVerse 
-                  showRefresh={false}
-                  version="NIV"
-                  showShare={true}
-                />
+                <DailyVerse showRefresh={false} version="NIV" showShare={true} />
               </ErrorBoundary>
             </section>
 
@@ -272,23 +261,16 @@ const Home = ({ className = '' }) => {
             <section className="events-section">
               <div className="section-header">
                 <h2>Upcoming Events</h2>
-                <a href="/events" className="view-all-link">
-                  View All Events →
-                </a>
+                <a href="/events" className="view-all-link">View All Events →</a>
               </div>
               <ErrorBoundary>
-                <EventCalendar 
-                  events={featuredEvents} 
-                  compact 
-                  showRegisterButton 
-                />
+                <EventCalendar events={featuredEvents} compact showRegisterButton />
               </ErrorBoundary>
             </section>
           </div>
 
-          {/* Right Column */}
           <div className="content-column">
-            {/* Ministry Highlights */}
+            {/* Highlights */}
             <section className="highlights-section">
               <h2>Ministry Highlights</h2>
               <div className="highlight-cards">
@@ -316,7 +298,7 @@ const Home = ({ className = '' }) => {
               </div>
             </section>
 
-            {/* Live Stream Status */}
+            {/* Live Stream */}
             {isLive && (
               <section className="live-now-section">
                 <div className="live-now-card">
@@ -330,16 +312,14 @@ const Home = ({ className = '' }) => {
                   <div className="live-stats">
                     <span className="viewer-count">{viewerCount} watching</span>
                   </div>
-                  <a href="/live" className="join-live-button">
-                    Join Live Stream
-                  </a>
+                  <a href="/live" className="join-live-button">Join Live Stream</a>
                 </div>
               </section>
             )}
           </div>
         </div>
 
-        {/* Testimonials Section */}
+        {/* Testimonials */}
         <section className="testimonials-home-section">
           <div className="container">
             <div className="section-header">
@@ -347,37 +327,26 @@ const Home = ({ className = '' }) => {
               <p>Hear how God is working through our ministry</p>
             </div>
             <ErrorBoundary>
-              <Testimonials 
-                testimonials={testimonials}
-                autoPlay={true}
-                showControls={true}
-                interval={6000}
-              />
+              <Testimonials testimonials={testimonials} autoPlay showControls interval={6000} />
             </ErrorBoundary>
           </div>
         </section>
 
-        {/* Call to Action */}
+        {/* CTA */}
         <section className="cta-section">
           <div className="container">
             <div className="cta-content">
               <h2>Ready to Make a Difference?</h2>
               <p>Join us in our mission to bring hope and transformation to communities in need.</p>
               <div className="cta-buttons">
-                <a href="/donate" className="btn btn-primary">
-                  <FaDonate />
-                  Support Our Mission
-                </a>
-                <a href="/volunteer" className="btn btn-secondary">
-                  <FaHandsHelping />
-                  Volunteer Opportunities
-                </a>
+                <a href="/donate" className="btn btn-primary"><FaDonate /> Support Our Mission</a>
+                <a href="/volunteer" className="btn btn-secondary"><FaHandsHelping /> Volunteer Opportunities</a>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Newsletter Signup */}
+        {/* Newsletter */}
         <section className="newsletter-section">
           <div className="container">
             <div className="newsletter-content">
@@ -387,15 +356,8 @@ const Home = ({ className = '' }) => {
               </div>
               <form className="newsletter-form">
                 <div className="form-group">
-                  <input 
-                    type="email" 
-                    placeholder="Enter your email address"
-                    className="newsletter-input"
-                    required
-                  />
-                  <button type="submit" className="btn btn-primary">
-                    Subscribe
-                  </button>
+                  <input type="email" placeholder="Enter your email address" className="newsletter-input" required />
+                  <button type="submit" className="btn btn-primary">Subscribe</button>
                 </div>
                 <p className="newsletter-note">We respect your privacy. Unsubscribe at any time.</p>
               </form>
