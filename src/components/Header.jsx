@@ -9,12 +9,12 @@ const Header = ({ livestreamActive, nextStream }) => {
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => setMenuOpen(false);
 
-  // Navigation items matching App.jsx routes
+  // Navigation items (NO PROFILE)
   const navigation = [
     { name: 'Home', href: '/', current: location.pathname === '/' },
     { name: 'Livestream', href: '/livestream', current: location.pathname === '/livestream' },
     { name: 'Donate', href: '/donate', current: location.pathname === '/donate' },
-    { name: 'Profile', href: '/profile', current: location.pathname === '/profile' },
+    { name: 'Contact', href: '/contact', current: location.pathname === '/contact' },
   ];
 
   return (
@@ -34,8 +34,7 @@ const Header = ({ livestreamActive, nextStream }) => {
                 e.target.nextSibling.style.display = 'block';
               }}
             />
-            {/* Fallback text logo */}
-            <div className="text-logo" style={{display: 'none'}}>
+            <div className="text-logo" style={{ display: 'none' }}>
               <span className="logo-text">Heavenly Nature Ministry</span>
             </div>
           </Link>
@@ -46,8 +45,8 @@ const Header = ({ livestreamActive, nextStream }) => {
           <ul className="nav-list">
             {navigation.map((item) => (
               <li key={item.name}>
-                <Link 
-                  to={item.href} 
+                <Link
+                  to={item.href}
                   className={`nav-link ${item.current ? 'nav-link-active' : ''} ${
                     item.name === 'Livestream' && livestreamActive ? 'live-indicator' : ''
                   }`}
@@ -85,8 +84,8 @@ const Header = ({ livestreamActive, nextStream }) => {
         <ul className="mobile-nav-list">
           {navigation.map((item) => (
             <li key={item.name}>
-              <Link 
-                to={item.href} 
+              <Link
+                to={item.href}
                 onClick={closeMenu}
                 className={`mobile-nav-link ${item.current ? 'mobile-nav-link-active' : ''} ${
                   item.name === 'Donate' ? 'mobile-donate-button' : ''
@@ -103,15 +102,15 @@ const Header = ({ livestreamActive, nextStream }) => {
           ))}
         </ul>
 
-        {/* Livestream Status in Mobile Menu */}
+        {/* Livestream Status (Mobile Only) */}
         {livestreamActive && (
           <div className="mobile-live-status">
             <div className="live-badge-mobile">
               <span className="pulse-dot"></span>
               LIVE NOW - Sunday Service
             </div>
-            <Link 
-              to="/livestream" 
+            <Link
+              to="/livestream"
               onClick={closeMenu}
               className="watch-now-button-mobile"
             >
