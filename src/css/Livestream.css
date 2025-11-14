@@ -1,0 +1,91 @@
+/* ===================== Livestream Page Styles ===================== */
+.livestream-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 2rem 1rem;
+  gap: 2rem;
+}
+
+/* ===== HEADER ===== */
+.livestream-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.livestream-header h1 {
+  font-size: 2.5rem;
+  color: #1a4b8c;
+  margin-bottom: 0.5rem;
+}
+
+.livestream-header p {
+  font-size: 1.125rem;
+  color: #6b7280;
+}
+
+/* ===== MAIN STREAM SECTIONS ===== */
+.livestream-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stream-section {
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.stream-section h2 {
+  font-size: 1.75rem;
+  color: #1a4b8c;
+  margin-bottom: 0.5rem;
+}
+
+.stream-section iframe {
+  border-radius: 0.5rem;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* ===== LIVESTREAM INFO ===== */
+.livestream-info {
+  background: #e0f0ff;
+  border-left: 4px solid #1a4b8c;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.livestream-info h2 {
+  font-size: 1.75rem;
+  color: #1a4b8c;
+  margin-bottom: 0.5rem;
+}
+
+.livestream-info p {
+  font-size: 1rem;
+  color: #374151;
+}
+
+/* ===================== RESPONSIVE DESIGN ===================== */
+@media (max-width: 768px) {
+  .livestream-header h1 { font-size: 2rem; }
+  .livestream-header p { font-size: 1rem; }
+
+  .stream-section h2,
+  .livestream-info h2 { font-size: 1.5rem; }
+
+  .stream-section iframe { height: 300px; }
+}
+
+@media (max-width: 480px) {
+  .livestream-page { padding: 1rem 0.5rem; }
+  .stream-section iframe { height: 250px; }
+}
