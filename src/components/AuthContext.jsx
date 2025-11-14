@@ -1,142 +1,111 @@
-// ✅ src/components/AuthContext.jsx - Simplified for frontend only
-import React, { createContext, useState, useContext, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+// src/components/AuthContext.jsx
+import React, { createContext, useState, useContext, useCallback, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [authState, setAuthState] = useState({
-    user: null,
-    isLoading: false,
-    isAuthenticated: false,
-  });
-
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Simple mock login - just store user in localStorage
-  const login = useCallback(async (email, redirectPath = '/') => {
-    if (!email || !email.includes('@')) {
-      toast.error('Please enter a valid email address.');
-      throw new Error('Invalid email address.');
+  const [auth, setAuth] = useState({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
+  });
+
+  /* -----------------------------
+     Login (Mock)
+  -------------------------------- */
+  const login = useCallback(async (email) => {
+    if (!email || !email.includes("@")) {
+      toast.error("Enter a valid email.");
+      return;
     }
 
-    try {
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+    setAuth((p) => ({ ...p, isLoading: true }));
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((r) => setTimeout(r, 500));
 
-      const mockUser = {
-        id: Date.now().toString(),
-        email,
-        name: email.split('@')[0],
-        createdAt: new Date().toISOString(),
-      };
+    const user = {
+      id: Date.now().toString(),
+      email,
+      name: email.split("@")[0],
+    };
 
-      // Store in localStorage for persistence
-      localStorage.setItem('currentUser', JSON.stringify(mockUser));
-      
-      setAuthState({
-        user: mockUser,
-        isLoading: false,
-        isAuthenticated: true,
-      });
+    localStorage.setItem("user", JSON.stringify(user));
 
-      toast.success(`Welcome back, ${email}!`);
-      navigate(location.state?.from || redirectPath, { replace: true });
-
-      return mockUser;
-    } catch (error) {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-      toast.error('Login failed. Please try again.');
-      throw error;
-    }
-  }, [navigate, location]);
-
-  // Simple logout
-  const logout = useCallback(async () => {
-    localStorage.removeItem('currentUser');
-    setAuthState({
-      user: null,
+    setAuth({
+      user,
+      isAuthenticated: true,
       isLoading: false,
-      isAuthenticated: false,
     });
-    
-    toast.success('You have been logged out successfully.');
-    navigate('/login', { state: { from: location.pathname }, replace: true });
-  }, [navigate, location]);
 
-  // Check if user is logged in on app start
-  const checkAuthStatus = useCallback(() => {
+    toast.success("Logged in successfully.");
+    navigate(location.state?.from || "/", { replace: true });
+  }, []);
+
+  /* -----------------------------
+     Logout
+  -------------------------------- */
+  const logout = useCallback(() => {
+    localStorage.removeItem("user");
+    setAuth({ user: null, isAuthenticated: false, isLoading: false });
+    toast.success("Logged out.");
+    navigate("/login", { replace: true });
+  }, []);
+
+  /* -----------------------------
+     Load user from storage
+  -------------------------------- */
+  const check = useCallback(() => {
     try {
-      const userStr = localStorage.getItem('currentUser');
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        setAuthState({
-          user,
-          isLoading: false,
-          isAuthenticated: true,
-        });
+      const data = localStorage.getItem("user");
+      if (data) {
+        setAuth({ user: JSON.parse(data), isAuthenticated: true, isLoading: false });
       } else {
-        setAuthState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-        });
+        setAuth({ user: null, isAuthenticated: false, isLoading: false });
       }
-    } catch (error) {
-      console.error('Auth check error:', error);
-      setAuthState({
-        user: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
+    } catch {
+      setAuth({ user: null, isAuthenticated: false, isLoading: false });
     }
   }, []);
 
-  // Initialize auth state on mount
-  React.useEffect(() => {
-    checkAuthStatus();
-  }, [checkAuthStatus]);
-
-  const contextValue = {
-    ...authState,
-    login,
-    logout,
-    refreshUser: () => checkAuthStatus(), // Simple refresh
-    getToken: async () => 'mock-token-' + Date.now(), // Mock token
-  };
+  useEffect(() => check(), [check]);
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider
+      value={{
+        ...auth,
+        login,
+        logout,
+        refreshUser: check,
+        getToken: async () => "mock-token",
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
+/* -----------------------------
+   Hooks
+-------------------------------- */
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
+  return useContext(AuthContext);
 }
 
-export function useRequireAuth(redirectPath = '/login') {
+export function useRequireAuth(redirect = "/login") {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      navigate(redirectPath, { 
-        state: { from: location.pathname } 
-      });
+      navigate(redirect, { state: { from: location.pathname } });
     }
-  }, [isAuthenticated, isLoading, navigate, redirectPath, location]);
+  }, [isAuthenticated, isLoading]);
 
   return { isAuthenticated, isLoading };
 }
