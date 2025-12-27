@@ -1,0 +1,19 @@
+Heavenly Nature Ministry Website
+=================================
+
+Version: 1.0.0
+Build Date: Sat Dec 27 19:41:00 UTC 2025
+Production-Ready Package
+
+IMPORTANT FILES:
+- README.md: Complete setup and usage instructions
+- DEPLOYMENT.md: Step-by-step Render deployment guide
+- backend/.env.example: Backend environment variables template
+- frontend/.env.example: Frontend environment variables template
+
+SETUP INSTRUCTIONS:
+1. Copy .env.example files to .env in respective directories
+2. Fill in your MongoDB URL, Stripe keys, and other credentials
+3. Follow deployment instructions in DEPLOYMENT.md
+
+For questions: info@heavenlynatureministry.com
