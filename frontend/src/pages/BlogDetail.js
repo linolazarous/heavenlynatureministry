@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,23 +8,26 @@ import { ArrowLeft, Calendar, User, Eye } from 'lucide-react';
 const BlogDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [blog, setBlog] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBlog();
-  }, [id]);
-
-  const fetchBlog = async () => {
+  const fetchBlog = useCallback(async () => {
+    setLoading(true);
     try {
       const response = await api.get(`/blog/${id}`);
       setBlog(response.data);
     } catch (error) {
       console.error('Error fetching blog:', error);
+      setBlog(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchBlog();
+  }, [fetchBlog]);
 
   if (loading) {
     return (
@@ -64,22 +67,34 @@ const BlogDetail = () => {
               className="w-full h-96 object-cover rounded-t-lg"
             />
           )}
+
           <CardContent className="p-8">
-            <h1 className="text-4xl font-bold mb-4" data-testid="blog-detail-title">{blog.title}</h1>
-            
+            <h1
+              className="text-4xl font-bold mb-4"
+              data-testid="blog-detail-title"
+            >
+              {blog.title}
+            </h1>
+
             <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-6 pb-6 border-b">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                {blog.author}
-              </div>
+              {blog.author && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  {blog.author}
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 {new Date(blog.created_at).toLocaleDateString()}
               </div>
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                {blog.views} views
-              </div>
+
+              {typeof blog.views === 'number' && (
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  {blog.views} views
+                </div>
+              )}
             </div>
 
             {blog.category && (
@@ -96,13 +111,15 @@ const BlogDetail = () => {
               </p>
             </div>
 
-            {blog.tags && blog.tags.length > 0 && (
+            {Array.isArray(blog.tags) && blog.tags.length > 0 && (
               <div className="mt-8 pt-6 border-t">
-                <h3 className="text-sm font-semibold text-gray-600 mb-3">Tags:</h3>
+                <h3 className="text-sm font-semibold text-gray-600 mb-3">
+                  Tags:
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {blog.tags.map((tag, index) => (
                     <span
-                      key={index}
+                      key={`${tag}-${index}`}
                       className="px-3 py-1 text-sm text-gray-600 bg-gray-100 rounded-full"
                     >
                       {tag}
