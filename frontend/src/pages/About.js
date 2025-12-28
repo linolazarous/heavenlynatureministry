@@ -144,7 +144,7 @@ const About = () => {
       {/* Our Objectives */}
       <section className="py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-8">Our Story</h2>
+          <h2 className="text-3xl font-bold text-center mb-8">Our Objectives</h2>
           <div className="prose prose-lg max-w-none">
             <p className="text-gray-600 mb-4">
               To win the lost souls to Christ and build their lives in the word of God
