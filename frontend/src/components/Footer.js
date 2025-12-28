@@ -11,7 +11,7 @@ const Footer = () => {
           <div>
             <h3 className="text-white text-lg font-semibold mb-4">Heavenly Nature Ministry</h3>
             <p className="text-sm">
-              Spreading the love and word of God through faith, hope, and community.
+              We are one
             </p>
           </div>
 
@@ -42,7 +42,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                <span>123 Church St, City, State</span>
+                <span>Gudele 2 Joppa Block3, Juba, South Sudan</span>
               </li>
             </ul>
           </div>
