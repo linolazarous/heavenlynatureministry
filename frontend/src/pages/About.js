@@ -38,7 +38,8 @@ const About = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
-                  Heavenly Nature Ministry exists to empower street/ abandoned children and orphans to fully utilize their spiritual, physical and mental gifts to become self-reliant and harmonious citizens in society.                </p>
+                  Heavenly Nature Ministry exists to empower street/ abandoned children and orphans to fully utilize their spiritual, physical and mental gifts to become self-reliant and harmonious citizens in society.
+                </p>
               </CardContent>
             </Card>
 
@@ -49,8 +50,11 @@ const About = () => {
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
                   1. Empowering the children spiritually, physically and mentally with the word of God.
+                  <br />
                   2. Teaching them to obey and honor Godʼs word in their lives.
-                  3. Building people in the word of God to become useful in South Sudan and beyond.                </p>
+                  <br />
+                  3. Building people in the word of God to become useful in South Sudan and beyond.
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -69,7 +73,7 @@ const About = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600">
-                   S – Seek God first (Matthew 6:33)
+                  S – Seek God first (Matthew 6:33)
                 </p>
               </CardContent>
             </Card>
@@ -108,8 +112,9 @@ const About = () => {
                   H – Honor and Humility (Roman 12:10, 1 Peter 5:5)
                 </p>
               </CardContent>
+            </Card>
 
-              <Card className="text-center">
+            <Card className="text-center">
               <CardHeader>
                 <Globe className="h-12 w-12 text-blue-600 mx-auto mb-4" />
                 <CardTitle>The meaning of I</CardTitle>
@@ -119,8 +124,9 @@ const About = () => {
                   I – Integrity (Job 31:6)
                 </p>
               </CardContent>
+            </Card>
 
-              <Card className="text-center">
+            <Card className="text-center">
               <CardHeader>
                 <Globe className="h-12 w-12 text-blue-600 mx-auto mb-4" />
                 <CardTitle>The meaning of M</CardTitle>
@@ -144,7 +150,8 @@ const About = () => {
               To win the lost souls to Christ and build their lives in the word of God
               through spiritual teachings, 
               preaching and giving life skills that enhance restoration of peace and
-              confidence among the communities;            </p>
+              confidence among the communities;
+            </p>
             <p className="text-gray-600 mb-4">
               To train, equip and empower community leaders for nation building
               with knowledge and tools for servant leadership, stewardship, and transformation.
@@ -162,7 +169,7 @@ const About = () => {
               Teaching them (sound and healthy doctrine) the word of God.
             </p>
             <p className="text-gray-600">
-              Be submissive to God’s authority and his commands.
+              Be submissive to Godʼs authority and his commands.
             </p>
             <p className="text-gray-600">
               Changing in character, conduct and conversation.
