@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/context/AuthContext';
+import { CombinedAuthProvider } from '@/context/AuthContext';
 import { Toaster } from '@/components/ui/sonner';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -27,72 +27,18 @@ import AdminBlogs from '@/pages/admin/AdminBlogs';
 import AdminDonations from '@/pages/admin/AdminDonations';
 import AdminContacts from '@/pages/admin/AdminContacts';
 
-// Axios setup
-import axios from 'axios';
-import { useAuth } from '@/context/AuthContext';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
-
-// Configure axios base URL
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
-axios.defaults.baseURL = BACKEND_URL;
-
-// Add request interceptor to include JWT token
-axios.interceptors.request.use(
-  (config) => {
-    // For admin routes, get session token from cookie or localStorage
-    const isAdminRoute = config.url?.includes('/admin/') || 
-                        config.url === '/api/auth/admin/login' ||
-                        config.url === '/api/auth/check';
-    
-    if (isAdminRoute) {
-      // Try to get session token from localStorage (set by AdminLogin)
-      const sessionToken = localStorage.getItem('admin_session_token');
-      if (sessionToken) {
-        config.headers['Authorization'] = `Bearer ${sessionToken}`;
-      }
-    } else {
-      // For regular user routes, get JWT token
-      const token = localStorage.getItem('user_token');
-      if (token) {
-        config.headers['Authorization'] = `Bearer ${token}`;
-      }
-    }
-    
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Add response interceptor for handling auth errors
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      if (window.location.pathname.includes('/admin')) {
-        // Clear admin session
-        localStorage.removeItem('admin_session_token');
-        localStorage.removeItem('admin_user');
-        window.location.href = '/admin/login';
-      } else {
-        // Clear user session
-        localStorage.removeItem('user_token');
-        localStorage.removeItem('user');
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+// Import your axios configuration
+import '@/api/axios';
+import '@/App.css';
 
 // Health check component
 const HealthCheck = () => {
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await axios.get('/api/health');
-        console.log('Backend health status:', response.data);
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api/health`);
+        const data = await response.json();
+        console.log('Backend health status:', data);
       } catch (error) {
         console.error('Backend health check failed:', error);
       }
@@ -105,7 +51,7 @@ const HealthCheck = () => {
 
 function App() {
   return (
-    <AuthProvider>
+    <CombinedAuthProvider>
       <BrowserRouter>
         <div className="App flex flex-col min-h-screen">
           <HealthCheck />
@@ -169,7 +115,7 @@ function App() {
           <Toaster />
         </div>
       </BrowserRouter>
-    </AuthProvider>
+    </CombinedAuthProvider>
   );
 }
 
