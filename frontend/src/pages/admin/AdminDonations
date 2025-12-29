@@ -1,0 +1,375 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { Search, Filter, Download, Eye, DollarSign, Calendar, User, Mail } from 'lucide-react';
+
+const AdminDonations = () => {
+  const [donations, setDonations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [selectedDonation, setSelectedDonation] = useState(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  const statusOptions = [
+    { value: '', label: 'All Status' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'succeeded', label: 'Succeeded' },
+    { value: 'failed', label: 'Failed' },
+    { value: 'cancelled', label: 'Cancelled' }
+  ];
+
+  useEffect(() => {
+    fetchDonations();
+  }, []);
+
+  const fetchDonations = async () => {
+    try {
+      // TODO: Replace with actual API call
+      // const response = await api.get('/api/donations');
+      // setDonations(response.data);
+      
+      // Mock data for now
+      setDonations([
+        {
+          id: '1',
+          amount: 100,
+          currency: 'usd',
+          donor_name: 'John Smith',
+          donor_email: 'john@example.com',
+          message: 'For the building fund',
+          status: 'succeeded',
+          created_at: '2024-01-15T14:30:00Z',
+          recurring: false,
+          anonymous: false,
+          payment_intent_id: 'pi_123456789'
+        },
+        {
+          id: '2',
+          amount: 50,
+          currency: 'usd',
+          donor_name: 'Jane Doe',
+          donor_email: 'jane@example.com',
+          message: 'Monthly support',
+          status: 'succeeded',
+          created_at: '2024-01-10T09:15:00Z',
+          recurring: true,
+          anonymous: false,
+          payment_intent_id: 'pi_987654321'
+        },
+        {
+          id: '3',
+          amount: 25,
+          currency: 'usd',
+          donor_name: 'Anonymous',
+          donor_email: '',
+          message: '',
+          status: 'pending',
+          created_at: '2024-01-20T16:45:00Z',
+          recurring: false,
+          anonymous: true,
+          payment_intent_id: 'pi_456789123'
+        }
+      ]);
+    } catch (error) {
+      toast.error('Failed to load donations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'succeeded':
+        return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Completed</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Processing</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Failed</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const handleViewDetails = (donation) => {
+    setSelectedDonation(donation);
+    setIsDetailsOpen(true);
+  };
+
+  const handleExport = () => {
+    // TODO: Implement export functionality
+    toast.success('Exporting donations data...');
+  };
+
+  const filteredDonations = donations.filter(donation => {
+    const matchesSearch = 
+      donation.donor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      donation.donor_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      donation.message?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = !statusFilter || donation.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalAmount = filteredDonations
+    .filter(d => d.status === 'succeeded')
+    .reduce((sum, d) => sum + d.amount, 0);
+
+  const averageAmount = filteredDonations.length > 0 
+    ? totalAmount / filteredDonations.filter(d => d.status === 'succeeded').length 
+    : 0;
+
+  return (
+    <div className="container mx-auto py-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Donations Management</h1>
+          <p className="text-gray-600">View and manage donation records</p>
+        </div>
+        <Button variant="outline" onClick={handleExport}>
+          <Download className="mr-2 h-4 w-4" />
+          Export Data
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">${totalAmount.toFixed(2)}</div>
+            <p className="text-sm text-gray-600">Total Donations</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">
+              {filteredDonations.filter(d => d.status === 'succeeded').length}
+            </div>
+            <p className="text-sm text-gray-600">Successful Donations</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">${averageAmount.toFixed(2)}</div>
+            <p className="text-sm text-gray-600">Average Donation</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-2xl font-bold">
+              {filteredDonations.filter(d => d.recurring).length}
+            </div>
+            <p className="text-sm text-gray-600">Recurring Donations</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Search & Filter</CardTitle>
+          <CardDescription>Find donations by donor or status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search by name, email, or message..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="w-full md:w-48">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Donations Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Donation Records ({filteredDonations.length})</CardTitle>
+          <CardDescription>All donation transactions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">Loading donations...</div>
+          ) : filteredDonations.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No donations found. {searchTerm && 'Try a different search term.'}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Donor</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredDonations.map((donation) => (
+                  <TableRow key={donation.id}>
+                    <TableCell>
+                      <div className="font-medium">
+                        {donation.anonymous ? 'Anonymous' : donation.donor_name}
+                      </div>
+                      {!donation.anonymous && donation.donor_email && (
+                        <div className="text-sm text-gray-500">{donation.donor_email}</div>
+                      )}
+                      {donation.message && (
+                        <div className="text-sm text-gray-500 line-clamp-1">{donation.message}</div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <DollarSign className="h-4 w-4 mr-1 text-gray-500" />
+                        <span className="font-semibold">{donation.amount.toFixed(2)}</span>
+                        <span className="text-sm text-gray-500 ml-1">{donation.currency.toUpperCase()}</span>
+                      </div>
+                      {donation.recurring && (
+                        <Badge variant="outline" className="mt-1 bg-blue-50 text-blue-700 border-blue-200">
+                          Recurring
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+                        {new Date(donation.created_at).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(donation.status)}</TableCell>
+                    <TableCell>
+                      {donation.anonymous ? (
+                        <Badge variant="outline">Anonymous</Badge>
+                      ) : (
+                        <Badge variant="outline">Public</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleViewDetails(donation)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Donation Details Dialog */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Donation Details</DialogTitle>
+            <DialogDescription>
+              Complete information about this donation
+            </DialogDescription>
+          </DialogHeader>
+          {selectedDonation && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Amount</p>
+                  <p className="font-semibold">
+                    ${selectedDonation.amount.toFixed(2)} {selectedDonation.currency.toUpperCase()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Status</p>
+                  <div className="mt-1">{getStatusBadge(selectedDonation.status)}</div>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Donor Information</p>
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center">
+                    <User className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>{selectedDonation.anonymous ? 'Anonymous' : selectedDonation.donor_name}</span>
+                  </div>
+                  {!selectedDonation.anonymous && selectedDonation.donor_email && (
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                      <span>{selectedDonation.donor_email}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Date & Time</p>
+                <p>{new Date(selectedDonation.created_at).toLocaleString()}</p>
+              </div>
+              
+              <div>
+                <p className="text-sm font-medium text-gray-500">Payment ID</p>
+                <code className="text-sm bg-gray-100 p-1 rounded">{selectedDonation.payment_intent_id}</code>
+              </div>
+              
+              {selectedDonation.message && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Message</p>
+                  <p className="mt-1 p-2 bg-gray-50 rounded">{selectedDonation.message}</p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Recurring</p>
+                  <Badge variant="outline" className={selectedDonation.recurring ? 'bg-green-50 text-green-700 border-green-200' : ''}>
+                    {selectedDonation.recurring ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Anonymous</p>
+                  <Badge variant="outline" className={selectedDonation.anonymous ? 'bg-gray-50 text-gray-700' : ''}>
+                    {selectedDonation.anonymous ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AdminDonations;
