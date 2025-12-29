@@ -17,7 +17,101 @@ import stripe
 import asyncio
 from email_validator import validate_email, EmailNotValidError
 import re
+# Add these imports at the top
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
+# Email configuration from environment
+SMTP_HOST = os.environ.get('SMTP_HOST')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
+FROM_EMAIL = os.environ.get('FROM_EMAIL', 'info@heavenlynatureministry.com')
+FROM_NAME = os.environ.get('FROM_NAME', 'Heavenly Nature Ministry')
+
+async def send_email(to_email: str, subject: str, html_content: str, text_content: str = None):
+    """Send email using Zoho SMTP"""
+    if not all([SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD]):
+        logging.warning("Email configuration not set. Skipping email send.")
+        return False
+    
+    try:
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f'{FROM_NAME} <{FROM_EMAIL}>'
+        msg['To'] = to_email
+        msg['Reply-To'] = FROM_EMAIL
+        
+        # Attach both HTML and plain text versions
+        if text_content:
+            part1 = MIMEText(text_content, 'plain')
+            msg.attach(part1)
+        
+        part2 = MIMEText(html_content, 'html')
+        msg.attach(part2)
+        
+        # Send email
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()  # Secure the connection
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.send_message(msg)
+        
+        logging.info(f"Email sent successfully to {to_email}")
+        return True
+        
+    except Exception as e:
+        logging.error(f"Failed to send email to {to_email}: {str(e)}")
+        return False
+
+# Update the contact submission endpoint to send emails
+@api_router.post("/contact", response_model=ContactSubmission)
+async def submit_contact(contact_data: ContactSubmission, request: Request, background_tasks: BackgroundTasks):
+    """Submit contact form with email notification"""
+    # ... existing rate limiting and database code ...
+    
+    # Send email notification in background
+    background_tasks.add_task(send_contact_notification, contact_data)
+    
+    return contact_data
+
+async def send_contact_notification(contact_data: ContactSubmission):
+    """Send notification email for contact form submission"""
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body>
+        <h2>New Contact Form Submission</h2>
+        <p><strong>Name:</strong> {contact_data.name}</p>
+        <p><strong>Email:</strong> {contact_data.email}</p>
+        <p><strong>Phone:</strong> {contact_data.phone or 'Not provided'}</p>
+        <p><strong>Subject:</strong> {contact_data.subject}</p>
+        <p><strong>Message:</strong></p>
+        <p>{contact_data.message}</p>
+        <hr>
+        <p>Submitted on: {contact_data.created_at}</p>
+    </body>
+    </html>
+    """
+    
+    text_content = f"""
+    New Contact Form Submission
+    Name: {contact_data.name}
+    Email: {contact_data.email}
+    Phone: {contact_data.phone or 'Not provided'}
+    Subject: {contact_data.subject}
+    Message: {contact_data.message}
+    Submitted on: {contact_data.created_at}
+    """
+    
+    await send_email(
+        to_email=FROM_EMAIL,  # Send to admin
+        subject=f"New Contact: {contact_data.subject}",
+        html_content=html_content,
+        text_content=text_content
+    )
+    
 # Load environment variables
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
