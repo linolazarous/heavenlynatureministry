@@ -86,7 +86,7 @@ const Contact = () => {
                     <Phone className="h-5 w-5 text-blue-600 mt-1" />
                     <div>
                       <p className="font-semibold">Phone</p>
-                      <p className="text-sm text-gray-600">+1 (555) 123-4567</p>
+                      <p className="text-sm text-gray-600">+211 926 006 202</p>
                     </div>
                   </div>
 
@@ -95,8 +95,8 @@ const Contact = () => {
                     <div>
                       <p className="font-semibold">Address</p>
                       <p className="text-sm text-gray-600">
-                        123 Church Street<br />
-                        City, State 12345
+                        Gudele 2 Joppa Block 3 <br />
+                        Juba, South Sudan
                       </p>
                     </div>
                   </div>
