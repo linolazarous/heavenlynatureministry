@@ -102,11 +102,6 @@ const Contact = () => {
     { value: 'technical', label: 'Technical Support', icon: <Shield className="h-4 w-4" /> }
   ];
 
-  const getDepartmentEmail = (department) => {
-    // All emails go to the same address, but we can add labels for filtering
-    return 'info@heavenlynatureministry.com';
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
@@ -125,8 +120,7 @@ const Contact = () => {
               Connect With Us
             </h1>
             <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto mb-8">
-              We're here to listen, support, and walk with you on your faith journey. 
-              Reach out anytime - we'd love to hear from you.
+              {"We're here to listen, support, and walk with you on your faith journey. Reach out anytime - we'd love to hear from you."}
             </p>
             <div className="flex items-center justify-center space-x-2 text-sm text-blue-200">
               <MessageSquare className="h-4 w-4" />
@@ -430,7 +424,7 @@ const Contact = () => {
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="urgent" id="urgent-urgency" />
                             <Label htmlFor="urgent-urgency" className="cursor-pointer text-orange-600">
-                              Urgent (<2h)
+                              Urgent (&lt;2h)
                             </Label>
                           </div>
                         </RadioGroup>
