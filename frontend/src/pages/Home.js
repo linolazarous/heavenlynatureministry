@@ -73,7 +73,7 @@ const Home = () => {
                   <MapPin className="h-6 w-6 text-blue-300" />
                   <div>
                     <p className="font-medium">Location</p>
-                    <p className="text-gray-300">123 Church Street</p>
+                    <p className="text-gray-300">Gudele 2 Joppa Block 3, Juba South Sudan</p>
                   </div>
                 </div>
               </div>
