@@ -63,89 +63,98 @@ pwd_context = CryptContext(
     bcrypt__rounds=12  # More secure rounds for production
 )
 
-# MongoDB connection with retry logic
-async def get_mongo_client():
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            client = AsyncIOMotorClient(
-                MONGO_URL,
-                maxPoolSize=100,
-                minPoolSize=10,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000,
-                socketTimeoutMS=30000
-            )
-            await client.admin.command('ping')
-            logging.info("Successfully connected to MongoDB")
-            return client
-        except Exception as e:
-            logging.warning(f"MongoDB connection attempt {attempt + 1} failed: {str(e)}")
-            if attempt < max_retries - 1:
-                await asyncio.sleep(1)
-            else:
-                logging.error("Failed to connect to MongoDB after all retries")
-                raise
-
+# MongoDB connection - Use lazy initialization pattern
 client = None
-try:
-    client = asyncio.run(get_mongo_client())
-except Exception as e:
-    logging.error(f"Could not initialize MongoDB client: {str(e)}")
-    client = None
+db = None
 
-db = client[DB_NAME] if client else None
+async def get_mongo_client():
+    """Initialize MongoDB client"""
+    global client, db
+    if client is None:
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                client = AsyncIOMotorClient(
+                    MONGO_URL,
+                    maxPoolSize=100,
+                    minPoolSize=10,
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=5000,
+                    socketTimeoutMS=30000
+                )
+                await client.admin.command('ping')
+                logging.info("Successfully connected to MongoDB")
+                db = client[DB_NAME]
+                return client
+            except Exception as e:
+                logging.warning(f"MongoDB connection attempt {attempt + 1} failed: {str(e)}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(1)
+                else:
+                    logging.error("Failed to connect to MongoDB after all retries")
+                    client = None
+                    db = None
+                    raise
+    return client
+
+async def get_database():
+    """Get database instance"""
+    if db is None:
+        await get_mongo_client()
+    return db
 
 # Create indexes on startup
 async def create_indexes():
-    if db:
-        try:
+    """Create database indexes"""
+    try:
+        database = await get_database()
+        if database:
             # Users indexes
-            await db.users.create_index("email", unique=True)
-            await db.users.create_index("created_at")
+            await database.users.create_index("email", unique=True)
+            await database.users.create_index("created_at")
             
             # Admin users indexes
-            await db.admin_users.create_index("username", unique=True)
-            await db.admin_users.create_index("email", unique=True)
+            await database.admin_users.create_index("username", unique=True)
+            await database.admin_users.create_index("email", unique=True)
             
             # User sessions indexes
-            await db.user_sessions.create_index("session_token", unique=True)
-            await db.user_sessions.create_index("expires_at", expireAfterSeconds=0)  # TTL index
-            await db.user_sessions.create_index("user_id")
+            await database.user_sessions.create_index("session_token", unique=True)
+            await database.user_sessions.create_index("expires_at", expireAfterSeconds=0)  # TTL index
+            await database.user_sessions.create_index("user_id")
             
             # Sermons indexes
-            await db.sermons.create_index("date")
-            await db.sermons.create_index("created_at")
-            await db.sermons.create_index("speaker")
+            await database.sermons.create_index("date")
+            await database.sermons.create_index("created_at")
+            await database.sermons.create_index("speaker")
             
             # Events indexes
-            await db.events.create_index("date")
-            await db.events.create_index("created_at")
-            await db.events.create_index("category")
+            await database.events.create_index("date")
+            await database.events.create_index("created_at")
+            await database.events.create_index("category")
             
             # Event RSVPs indexes
-            await db.event_rsvps.create_index("event_id")
-            await db.event_rsvps.create_index("email")
-            await db.event_rsvps.create_index("created_at")
+            await database.event_rsvps.create_index("event_id")
+            await database.event_rsvps.create_index("email")
+            await database.event_rsvps.create_index("created_at")
             
             # Blogs indexes
-            await db.blogs.create_index("created_at")
-            await db.blogs.create_index("published")
-            await db.blogs.create_index("category")
+            await database.blogs.create_index("created_at")
+            await database.blogs.create_index("published")
+            await database.blogs.create_index("category")
             
             # Donations indexes
-            await db.donations.create_index("created_at")
-            await db.donations.create_index("status")
-            await db.donations.create_index("payment_intent_id", unique=True)
+            await database.donations.create_index("created_at")
+            await database.donations.create_index("status")
+            await database.donations.create_index("payment_intent_id", unique=True)
             
             # Contact submissions indexes
-            await db.contact_submissions.create_index("created_at")
-            await db.contact_submissions.create_index("status")
-            await db.contact_submissions.create_index("email")
+            await database.contact_submissions.create_index("created_at")
+            await database.contact_submissions.create_index("status")
+            await database.contact_submissions.create_index("email")
             
             logging.info("Database indexes created successfully")
-        except Exception as e:
-            logging.error(f"Error creating indexes: {str(e)}")
+    except Exception as e:
+        logging.error(f"Error creating indexes: {str(e)}")
 
 # Security
 security = HTTPBearer(auto_error=False)
@@ -392,7 +401,8 @@ async def get_current_user(
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid authentication")
     
-    user_doc = await db.users.find_one({"id": user_id, "is_active": True}, {"_id": 0})
+    database = await get_database()
+    user_doc = await database.users.find_one({"id": user_id, "is_active": True}, {"_id": 0})
     if not user_doc:
         raise HTTPException(status_code=401, detail="User not found or inactive")
     
@@ -414,7 +424,8 @@ async def verify_admin_session(request: Request) -> Dict[str, Any]:
     if not session_token:
         raise HTTPException(status_code=401, detail="Session token required")
     
-    session = await db.user_sessions.find_one(
+    database = await get_database()
+    session = await database.user_sessions.find_one(
         {"session_token": session_token},
         {"_id": 0}
     )
@@ -429,11 +440,11 @@ async def verify_admin_session(request: Request) -> Dict[str, Any]:
         expires_at = session['expires_at']
     
     if datetime.now(timezone.utc) > expires_at:
-        await db.user_sessions.delete_one({"session_token": session_token})
+        await database.user_sessions.delete_one({"session_token": session_token})
         raise HTTPException(status_code=401, detail="Session expired")
     
     # Get user info
-    user = await db.admin_users.find_one(
+    user = await database.admin_users.find_one(
         {"id": session['user_id'], "is_active": True},
         {"_id": 0, "hashed_password": 0}
     )
@@ -442,7 +453,7 @@ async def verify_admin_session(request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="User not found or inactive")
     
     # Update last activity
-    await db.user_sessions.update_one(
+    await database.user_sessions.update_one(
         {"session_token": session_token},
         {"$set": {"expires_at": datetime.now(timezone.utc) + timedelta(days=1)}}
     )
@@ -464,6 +475,7 @@ def validate_email_address(email: str) -> bool:
 async def log_activity(user_id: str, action: str, details: Dict[str, Any] = None):
     """Log user activity for audit trail"""
     try:
+        database = await get_database()
         log_entry = {
             "id": str(uuid.uuid4()),
             "user_id": user_id,
@@ -473,7 +485,7 @@ async def log_activity(user_id: str, action: str, details: Dict[str, Any] = None
             "ip_address": None,  # Would need request context
             "user_agent": None
         }
-        await db.activity_logs.insert_one(log_entry)
+        await database.activity_logs.insert_one(log_entry)
     except Exception as e:
         logging.error(f"Failed to log activity: {str(e)}")
 
@@ -562,11 +574,13 @@ async def admin_login(
     background_tasks: BackgroundTasks
 ):
     """Admin login with username and password"""
+    database = await get_database()
+    
     # Rate limiting check (simple implementation)
     ip_address = request.client.host if request.client else "unknown"
     
     # Check for too many failed attempts
-    failed_attempts = await db.failed_login_attempts.count_documents({
+    failed_attempts = await database.failed_login_attempts.count_documents({
         "ip_address": ip_address,
         "created_at": {"$gt": datetime.now(timezone.utc) - timedelta(minutes=15)}
     })
@@ -575,14 +589,14 @@ async def admin_login(
         raise HTTPException(status_code=429, detail="Too many login attempts. Please try again later.")
     
     # Find admin user
-    user_doc = await db.admin_users.find_one(
+    user_doc = await database.admin_users.find_one(
         {"username": login_data.username, "is_active": True},
         {"_id": 0}
     )
     
     if not user_doc:
         # Log failed attempt
-        await db.failed_login_attempts.insert_one({
+        await database.failed_login_attempts.insert_one({
             "id": str(uuid.uuid4()),
             "username": login_data.username,
             "ip_address": ip_address,
@@ -593,7 +607,7 @@ async def admin_login(
     # Verify password
     if not verify_password(login_data.password, user_doc['hashed_password']):
         # Log failed attempt
-        await db.failed_login_attempts.insert_one({
+        await database.failed_login_attempts.insert_one({
             "id": str(uuid.uuid4()),
             "username": login_data.username,
             "ip_address": ip_address,
@@ -602,7 +616,7 @@ async def admin_login(
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     # Clear failed attempts for this IP
-    await db.failed_login_attempts.delete_many({"ip_address": ip_address})
+    await database.failed_login_attempts.delete_many({"ip_address": ip_address})
     
     # Create session token
     session_token = str(uuid.uuid4())
@@ -620,10 +634,10 @@ async def admin_login(
     session_dict['created_at'] = session_dict['created_at'].isoformat()
     session_dict['expires_at'] = session_dict['expires_at'].isoformat()
     
-    await db.user_sessions.insert_one(session_dict)
+    await database.user_sessions.insert_one(session_dict)
     
     # Update last login
-    await db.admin_users.update_one(
+    await database.admin_users.update_one(
         {"id": user_doc['id']},
         {"$set": {"last_login": datetime.now(timezone.utc).isoformat()}}
     )
@@ -660,12 +674,14 @@ async def admin_login(
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
     """Register a new user"""
+    database = await get_database()
+    
     # Validate email
     if not validate_email_address(user_data.email):
         raise HTTPException(status_code=400, detail="Invalid email address")
     
     # Check if user exists
-    existing_user = await db.users.find_one({"email": user_data.email})
+    existing_user = await database.users.find_one({"email": user_data.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
@@ -677,7 +693,7 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks):
     user_dict['created_at'] = user_dict['created_at'].isoformat()
     user_dict['updated_at'] = user_dict['updated_at'].isoformat()
     
-    await db.users.insert_one(user_dict)
+    await database.users.insert_one(user_dict)
     
     # Create token
     token = create_access_token({"sub": user.id, "email": user.email, "role": user.role})
@@ -698,10 +714,12 @@ async def user_login(
     background_tasks: BackgroundTasks
 ):
     """User login"""
+    database = await get_database()
+    
     # Rate limiting check
     ip_address = request.client.host if request.client else "unknown"
     
-    failed_attempts = await db.failed_login_attempts.count_documents({
+    failed_attempts = await database.failed_login_attempts.count_documents({
         "email": credentials.email,
         "created_at": {"$gt": datetime.now(timezone.utc) - timedelta(minutes=15)}
     })
@@ -709,10 +727,10 @@ async def user_login(
     if failed_attempts >= 5:
         raise HTTPException(status_code=429, detail="Too many login attempts. Please try again later.")
     
-    user_doc = await db.users.find_one({"email": credentials.email, "is_active": True}, {"_id": 0})
+    user_doc = await database.users.find_one({"email": credentials.email, "is_active": True}, {"_id": 0})
     if not user_doc:
         # Log failed attempt
-        await db.failed_login_attempts.insert_one({
+        await database.failed_login_attempts.insert_one({
             "id": str(uuid.uuid4()),
             "email": credentials.email,
             "ip_address": ip_address,
@@ -722,7 +740,7 @@ async def user_login(
     
     if not verify_password(credentials.password, user_doc.get('hashed_password', '')):
         # Log failed attempt
-        await db.failed_login_attempts.insert_one({
+        await database.failed_login_attempts.insert_one({
             "id": str(uuid.uuid4()),
             "email": credentials.email,
             "ip_address": ip_address,
@@ -731,13 +749,13 @@ async def user_login(
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Clear failed attempts
-    await db.failed_login_attempts.delete_many({"email": credentials.email})
+    await database.failed_login_attempts.delete_many({"email": credentials.email})
     
     user = User(**{k: v for k, v in user_doc.items() if k != 'hashed_password'})
     token = create_access_token({"sub": user.id, "email": user.email, "role": user.role})
     
     # Update last login
-    await db.users.update_one(
+    await database.users.update_one(
         {"id": user.id},
         {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}}
     )
@@ -761,11 +779,12 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @api_router.post("/auth/logout")
 async def logout(response: Response, request: Request):
     """Logout user"""
+    database = await get_database()
     session_token = request.cookies.get("session_token")
     
     if session_token:
         # Delete session from database
-        await db.user_sessions.delete_one({"session_token": session_token})
+        await database.user_sessions.delete_one({"session_token": session_token})
     
     # Clear cookie
     response.delete_cookie(
@@ -795,6 +814,8 @@ async def check_auth(request: Request):
 @api_router.post("/auth/refresh")
 async def refresh_token(request: Request):
     """Refresh JWT token"""
+    database = await get_database()
+    
     authorization = request.headers.get("Authorization")
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid authorization header")
@@ -808,7 +829,7 @@ async def refresh_token(request: Request):
             raise HTTPException(status_code=401, detail="Invalid token")
         
         # Check if user exists and is active
-        user_doc = await db.users.find_one({"id": user_id, "is_active": True}, {"_id": 0})
+        user_doc = await database.users.find_one({"id": user_id, "is_active": True}, {"_id": 0})
         if not user_doc:
             raise HTTPException(status_code=401, detail="User not found")
         
@@ -829,11 +850,10 @@ async def refresh_token(request: Request):
 
 async def initialize_admin_user():
     """Initialize admin user on startup"""
-    if not db:
-        return
+    database = await get_database()
     
     # Check if admin user exists
-    admin_user = await db.admin_users.find_one({"username": ADMIN_USERNAME})
+    admin_user = await database.admin_users.find_one({"username": ADMIN_USERNAME})
     
     if not admin_user:
         # Create admin user
@@ -849,7 +869,7 @@ async def initialize_admin_user():
         admin_dict = admin_user.model_dump()
         admin_dict['created_at'] = admin_dict['created_at'].isoformat()
         
-        await db.admin_users.insert_one(admin_dict)
+        await database.admin_users.insert_one(admin_dict)
         logging.info(f"Admin user '{ADMIN_USERNAME}' created successfully")
     else:
         logging.info(f"Admin user '{ADMIN_USERNAME}' already exists")
@@ -865,6 +885,8 @@ async def get_sermons(
     year: Optional[int] = None
 ):
     """Get sermons with optional filtering"""
+    database = await get_database()
+    
     query = {}
     
     if series:
@@ -877,7 +899,7 @@ async def get_sermons(
             "$lt": datetime(year + 1, 1, 1, tzinfo=timezone.utc).isoformat()
         }
     
-    sermons = await db.sermons.find(query, {"_id": 0})\
+    sermons = await database.sermons.find(query, {"_id": 0})\
         .sort("date", -1)\
         .skip(skip)\
         .limit(limit)\
@@ -894,12 +916,14 @@ async def get_sermons(
 @api_router.get("/sermons/{sermon_id}", response_model=Sermon)
 async def get_sermon(sermon_id: str):
     """Get a specific sermon by ID"""
-    sermon = await db.sermons.find_one({"id": sermon_id}, {"_id": 0})
+    database = await get_database()
+    
+    sermon = await database.sermons.find_one({"id": sermon_id}, {"_id": 0})
     if not sermon:
         raise HTTPException(status_code=404, detail="Sermon not found")
     
     # Increment views asynchronously
-    asyncio.create_task(db.sermons.update_one(
+    asyncio.create_task(database.sermons.update_one(
         {"id": sermon_id},
         {"$inc": {"views": 1}}
     ))
@@ -917,12 +941,14 @@ async def create_sermon(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Create a new sermon (admin only)"""
+    database = await get_database()
+    
     sermon = Sermon(**sermon_data.model_dump())
     sermon_dict = sermon.model_dump()
     sermon_dict['date'] = sermon_dict['date'].isoformat()
     sermon_dict['created_at'] = sermon_dict['created_at'].isoformat()
     
-    await db.sermons.insert_one(sermon_dict)
+    await database.sermons.insert_one(sermon_dict)
     
     # Log activity
     asyncio.create_task(log_activity(
@@ -940,16 +966,18 @@ async def update_sermon(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Update a sermon (admin only)"""
-    existing = await db.sermons.find_one({"id": sermon_id})
+    database = await get_database()
+    
+    existing = await database.sermons.find_one({"id": sermon_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Sermon not found")
     
     update_data = sermon_data.model_dump()
     update_data['date'] = update_data['date'].isoformat()
     
-    await db.sermons.update_one({"id": sermon_id}, {"$set": update_data})
+    await database.sermons.update_one({"id": sermon_id}, {"$set": update_data})
     
-    updated_sermon = await db.sermons.find_one({"id": sermon_id}, {"_id": 0})
+    updated_sermon = await database.sermons.find_one({"id": sermon_id}, {"_id": 0})
     if isinstance(updated_sermon.get('date'), str):
         updated_sermon['date'] = datetime.fromisoformat(updated_sermon['date'])
     if isinstance(updated_sermon.get('created_at'), str):
@@ -970,7 +998,9 @@ async def delete_sermon(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Delete a sermon (admin only)"""
-    result = await db.sermons.delete_one({"id": sermon_id})
+    database = await get_database()
+    
+    result = await database.sermons.delete_one({"id": sermon_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Sermon not found")
     
@@ -986,7 +1016,9 @@ async def delete_sermon(
 @api_router.post("/sermons/{sermon_id}/download")
 async def increment_download(sermon_id: str):
     """Increment download count for a sermon"""
-    result = await db.sermons.update_one(
+    database = await get_database()
+    
+    result = await database.sermons.update_one(
         {"id": sermon_id},
         {"$inc": {"downloads": 1}}
     )
@@ -1006,13 +1038,15 @@ async def get_events(
     category: Optional[str] = None
 ):
     """Get events with optional filtering"""
+    database = await get_database()
+    
     query = {}
     if upcoming:
         query["date"] = {"$gte": datetime.now(timezone.utc).isoformat()}
     if category:
         query["category"] = category
     
-    events = await db.events.find(query, {"_id": 0})\
+    events = await database.events.find(query, {"_id": 0})\
         .sort("date", 1)\
         .skip(skip)\
         .limit(limit)\
@@ -1031,7 +1065,9 @@ async def get_events(
 @api_router.get("/events/{event_id}", response_model=Event)
 async def get_event(event_id: str):
     """Get a specific event by ID"""
-    event = await db.events.find_one({"id": event_id}, {"_id": 0})
+    database = await get_database()
+    
+    event = await database.events.find_one({"id": event_id}, {"_id": 0})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
@@ -1050,6 +1086,8 @@ async def create_event(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Create a new event (admin only)"""
+    database = await get_database()
+    
     event = Event(**event_data.model_dump())
     event_dict = event.model_dump()
     event_dict['date'] = event_dict['date'].isoformat()
@@ -1057,7 +1095,7 @@ async def create_event(
         event_dict['end_date'] = event_dict['end_date'].isoformat()
     event_dict['created_at'] = event_dict['created_at'].isoformat()
     
-    await db.events.insert_one(event_dict)
+    await database.events.insert_one(event_dict)
     
     # Log activity
     asyncio.create_task(log_activity(
@@ -1075,7 +1113,9 @@ async def update_event(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Update an event (admin only)"""
-    existing = await db.events.find_one({"id": event_id})
+    database = await get_database()
+    
+    existing = await database.events.find_one({"id": event_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Event not found")
     
@@ -1084,9 +1124,9 @@ async def update_event(
     if update_data.get('end_date'):
         update_data['end_date'] = update_data['end_date'].isoformat()
     
-    await db.events.update_one({"id": event_id}, {"$set": update_data})
+    await database.events.update_one({"id": event_id}, {"$set": update_data})
     
-    updated_event = await db.events.find_one({"id": event_id}, {"_id": 0})
+    updated_event = await database.events.find_one({"id": event_id}, {"_id": 0})
     if isinstance(updated_event.get('date'), str):
         updated_event['date'] = datetime.fromisoformat(updated_event['date'])
     if updated_event.get('end_date') and isinstance(updated_event['end_date'], str):
@@ -1109,12 +1149,14 @@ async def delete_event(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Delete an event (admin only)"""
-    result = await db.events.delete_one({"id": event_id})
+    database = await get_database()
+    
+    result = await database.events.delete_one({"id": event_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Event not found")
     
     # Also delete related RSVPs
-    await db.event_rsvps.delete_many({"event_id": event_id})
+    await database.event_rsvps.delete_many({"event_id": event_id})
     
     # Log activity
     asyncio.create_task(log_activity(
@@ -1128,7 +1170,9 @@ async def delete_event(
 @api_router.post("/events/{event_id}/rsvp")
 async def rsvp_event(event_id: str, rsvp_data: EventRSVP):
     """RSVP for an event"""
-    event = await db.events.find_one({"id": event_id})
+    database = await get_database()
+    
+    event = await database.events.find_one({"id": event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
@@ -1144,7 +1188,7 @@ async def rsvp_event(event_id: str, rsvp_data: EventRSVP):
             raise HTTPException(status_code=400, detail="Event is full")
     
     # Check if already registered
-    existing_rsvp = await db.event_rsvps.find_one({"event_id": event_id, "email": rsvp_data.email})
+    existing_rsvp = await database.event_rsvps.find_one({"event_id": event_id, "email": rsvp_data.email})
     if existing_rsvp:
         raise HTTPException(status_code=400, detail="Already registered for this event")
     
@@ -1152,10 +1196,10 @@ async def rsvp_event(event_id: str, rsvp_data: EventRSVP):
     rsvp_dict['id'] = str(uuid.uuid4())
     rsvp_dict['created_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.event_rsvps.insert_one(rsvp_dict)
+    await database.event_rsvps.insert_one(rsvp_dict)
     
     # Update attendees count
-    await db.events.update_one(
+    await database.events.update_one(
         {"id": event_id},
         {"$inc": {"attendees_count": rsvp_data.attendees}}
     )
@@ -1168,7 +1212,9 @@ async def get_event_rsvps(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Get RSVPs for an event (admin only)"""
-    rsvps = await db.event_rsvps.find(
+    database = await get_database()
+    
+    rsvps = await database.event_rsvps.find(
         {"event_id": event_id},
         {"_id": 0}
     ).sort("created_at", -1).to_list(1000)
@@ -1187,6 +1233,8 @@ async def get_blogs(
     featured: Optional[bool] = None
 ):
     """Get blog posts with optional filtering"""
+    database = await get_database()
+    
     query = {}
     if published_only:
         query["published"] = True
@@ -1197,7 +1245,7 @@ async def get_blogs(
     if featured is not None:
         query["featured"] = featured
     
-    blogs = await db.blogs.find(query, {"_id": 0})\
+    blogs = await database.blogs.find(query, {"_id": 0})\
         .sort("created_at", -1)\
         .skip(skip)\
         .limit(limit)\
@@ -1214,12 +1262,14 @@ async def get_blogs(
 @api_router.get("/blog/{blog_id}", response_model=Blog)
 async def get_blog(blog_id: str):
     """Get a specific blog post by ID"""
-    blog = await db.blogs.find_one({"id": blog_id}, {"_id": 0})
+    database = await get_database()
+    
+    blog = await database.blogs.find_one({"id": blog_id}, {"_id": 0})
     if not blog:
         raise HTTPException(status_code=404, detail="Blog post not found")
     
     # Increment views asynchronously
-    asyncio.create_task(db.blogs.update_one(
+    asyncio.create_task(database.blogs.update_one(
         {"id": blog_id},
         {"$inc": {"views": 1}}
     ))
@@ -1237,12 +1287,14 @@ async def create_blog(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Create a new blog post (admin only)"""
+    database = await get_database()
+    
     blog = Blog(**blog_data.model_dump())
     blog_dict = blog.model_dump()
     blog_dict['created_at'] = blog_dict['created_at'].isoformat()
     blog_dict['updated_at'] = blog_dict['updated_at'].isoformat()
     
-    await db.blogs.insert_one(blog_dict)
+    await database.blogs.insert_one(blog_dict)
     
     # Log activity
     asyncio.create_task(log_activity(
@@ -1260,16 +1312,18 @@ async def update_blog(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Update a blog post (admin only)"""
-    existing = await db.blogs.find_one({"id": blog_id})
+    database = await get_database()
+    
+    existing = await database.blogs.find_one({"id": blog_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Blog post not found")
     
     update_data = blog_data.model_dump()
     update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
     
-    await db.blogs.update_one({"id": blog_id}, {"$set": update_data})
+    await database.blogs.update_one({"id": blog_id}, {"$set": update_data})
     
-    updated_blog = await db.blogs.find_one({"id": blog_id}, {"_id": 0})
+    updated_blog = await database.blogs.find_one({"id": blog_id}, {"_id": 0})
     if isinstance(updated_blog.get('created_at'), str):
         updated_blog['created_at'] = datetime.fromisoformat(updated_blog['created_at'])
     if isinstance(updated_blog.get('updated_at'), str):
@@ -1290,7 +1344,9 @@ async def delete_blog(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Delete a blog post (admin only)"""
-    result = await db.blogs.delete_one({"id": blog_id})
+    database = await get_database()
+    
+    result = await database.blogs.delete_one({"id": blog_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Blog post not found")
     
@@ -1306,7 +1362,9 @@ async def delete_blog(
 @api_router.post("/blog/{blog_id}/like")
 async def like_blog(blog_id: str):
     """Like a blog post"""
-    result = await db.blogs.update_one(
+    database = await get_database()
+    
+    result = await database.blogs.update_one(
         {"id": blog_id},
         {"$inc": {"likes": 1}}
     )
@@ -1339,12 +1397,13 @@ async def create_payment_intent(donation_data: DonationCreate):
         )
         
         # Save donation to database
+        database = await get_database()
         donation = Donation(**donation_data.model_dump())
         donation.payment_intent_id = intent.id
         donation_dict = donation.model_dump()
         donation_dict['created_at'] = donation_dict['created_at'].isoformat()
         
-        await db.donations.insert_one(donation_dict)
+        await database.donations.insert_one(donation_dict)
         
         return {
             "client_secret": intent.client_secret,
@@ -1361,7 +1420,9 @@ async def create_payment_intent(donation_data: DonationCreate):
 @api_router.post("/donations/{donation_id}/confirm")
 async def confirm_donation(donation_id: str, payment_intent_id: str = Body(..., embed=True)):
     """Confirm donation payment"""
-    donation = await db.donations.find_one({"id": donation_id})
+    database = await get_database()
+    
+    donation = await database.donations.find_one({"id": donation_id})
     if not donation:
         raise HTTPException(status_code=404, detail="Donation not found")
     
@@ -1375,7 +1436,7 @@ async def confirm_donation(donation_id: str, payment_intent_id: str = Body(..., 
         }
         donation_status = status_mapping.get(intent.status, "pending")
         
-        await db.donations.update_one(
+        await database.donations.update_one(
             {"id": donation_id},
             {"$set": {"status": donation_status}}
         )
@@ -1395,11 +1456,13 @@ async def get_donations(
     status: Optional[str] = None
 ):
     """Get all donations (admin only)"""
+    database = await get_database()
+    
     query = {}
     if status:
         query["status"] = status
     
-    donations = await db.donations.find(query, {"_id": 0})\
+    donations = await database.donations.find(query, {"_id": 0})\
         .sort("created_at", -1)\
         .skip(skip)\
         .limit(limit)\
@@ -1414,6 +1477,8 @@ async def get_donations(
 @api_router.get("/donations/summary")
 async def get_donation_summary(auth_data: Dict[str, Any] = Depends(get_current_admin)):
     """Get donation summary (admin only)"""
+    database = await get_database()
+    
     pipeline = [
         {"$match": {"status": "succeeded"}},
         {"$group": {
@@ -1424,7 +1489,7 @@ async def get_donation_summary(auth_data: Dict[str, Any] = Depends(get_current_a
         }}
     ]
     
-    result = await db.donations.aggregate(pipeline).to_list(1)
+    result = await database.donations.aggregate(pipeline).to_list(1)
     
     if result:
         summary = result[0]
@@ -1441,10 +1506,12 @@ async def get_donation_summary(auth_data: Dict[str, Any] = Depends(get_current_a
 @api_router.post("/contact", response_model=ContactSubmission)
 async def submit_contact(contact_data: ContactSubmission, request: Request, background_tasks: BackgroundTasks):
     """Submit contact form with email notification"""
+    database = await get_database()
+    
     # Rate limiting by IP
     ip_address = request.client.host if request.client else "unknown"
     
-    recent_submissions = await db.contact_submissions.count_documents({
+    recent_submissions = await database.contact_submissions.count_documents({
         "ip_address": ip_address,
         "created_at": {"$gt": datetime.now(timezone.utc) - timedelta(hours=1)}
     })
@@ -1457,7 +1524,7 @@ async def submit_contact(contact_data: ContactSubmission, request: Request, back
     contact_dict['user_agent'] = request.headers.get("user-agent")
     contact_dict['created_at'] = contact_dict['created_at'].isoformat()
     
-    await db.contact_submissions.insert_one(contact_dict)
+    await database.contact_submissions.insert_one(contact_dict)
     
     # Send email notification in background
     background_tasks.add_task(send_contact_notification, contact_data)
@@ -1472,11 +1539,13 @@ async def get_contact_submissions(
     status: Optional[str] = None
 ):
     """Get contact submissions (admin only)"""
+    database = await get_database()
+    
     query = {}
     if status:
         query["status"] = status
     
-    submissions = await db.contact_submissions.find(query, {"_id": 0})\
+    submissions = await database.contact_submissions.find(query, {"_id": 0})\
         .sort("created_at", -1)\
         .skip(skip)\
         .limit(limit)\
@@ -1495,7 +1564,9 @@ async def update_contact_status(
     auth_data: Dict[str, Any] = Depends(get_current_admin)
 ):
     """Update contact submission status (admin only)"""
-    result = await db.contact_submissions.update_one(
+    database = await get_database()
+    
+    result = await database.contact_submissions.update_one(
         {"id": contact_id},
         {"$set": {"status": status}}
     )
@@ -1517,14 +1588,16 @@ async def update_contact_status(
 @api_router.get("/stats")
 async def get_stats(auth_data: Dict[str, Any] = Depends(get_current_admin)):
     """Get system statistics (admin only)"""
+    database = await get_database()
+    
     # Run all counts in parallel for better performance
     counts = await asyncio.gather(
-        db.users.count_documents({"is_active": True}),
-        db.sermons.count_documents({}),
-        db.events.count_documents({"date": {"$gte": datetime.now(timezone.utc).isoformat()}}),
-        db.blogs.count_documents({"published": True}),
-        db.donations.count_documents({"status": "succeeded"}),
-        db.contact_submissions.count_documents({"status": "new"})
+        database.users.count_documents({"is_active": True}),
+        database.sermons.count_documents({}),
+        database.events.count_documents({"date": {"$gte": datetime.now(timezone.utc).isoformat()}}),
+        database.blogs.count_documents({"published": True}),
+        database.donations.count_documents({"status": "succeeded"}),
+        database.contact_submissions.count_documents({"status": "new"})
     )
     
     # Get total donation amount
@@ -1533,7 +1606,7 @@ async def get_stats(auth_data: Dict[str, Any] = Depends(get_current_admin)):
         {"$group": {"_id": None, "total_amount": {"$sum": "$amount"}}}
     ]
     
-    donation_result = await db.donations.aggregate(pipeline).to_list(1)
+    donation_result = await database.donations.aggregate(pipeline).to_list(1)
     total_amount = donation_result[0]["total_amount"] if donation_result else 0
     
     return {
@@ -1564,8 +1637,9 @@ async def health_check():
     
     # Database check
     try:
-        if db:
-            await db.command('ping')
+        client = await get_mongo_client()
+        if client:
+            await client.admin.command('ping')
             checks['database'] = {"status": "healthy", "message": "Connected"}
         else:
             checks['database'] = {"status": "unhealthy", "message": "Not initialized"}
@@ -1641,7 +1715,10 @@ async def startup_event():
     """Initialize application on startup"""
     logger.info("Starting Heavenly Nature Ministry API")
     
-    if db:
+    try:
+        # Initialize database connection
+        await get_mongo_client()
+        
         # Create database indexes
         await create_indexes()
         
@@ -1649,8 +1726,8 @@ async def startup_event():
         await initialize_admin_user()
         
         logger.info("Application startup completed")
-    else:
-        logger.error("Failed to initialize database connection")
+    except Exception as e:
+        logger.error(f"Application startup failed: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
