@@ -43,7 +43,7 @@ JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', "HS256")
 JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', 24))
 
 # Admin Configuration
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'HeavenlyNature')
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 if not ADMIN_PASSWORD:
     raise ValueError("❌ ADMIN_PASSWORD must be set in environment variables")
