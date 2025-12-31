@@ -1564,7 +1564,7 @@ app.include_router(api_router)
 # Configure CORS
 cors_origins = os.environ.get('CORS_ORIGINS', '').split(',')
 if not cors_origins or cors_origins == ['']:
-    cors_origins = ["http://localhost:3000", "http://localhost:5173", "https://hnmbackend-gedp.onrender.com"]
+    cors_origins = ["http://localhost:3000", "http://localhost:5173", "https://hnmfrontend-gedp.onrender.com"]
 
 app.add_middleware(
     CORSMiddleware,
