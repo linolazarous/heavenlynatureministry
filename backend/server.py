@@ -1097,10 +1097,11 @@ async def get_sermons(
     if featured is not None:
         query["featured"] = featured
     
+    # FIXED LINE - removed the incorrect indentation
     sermons = await database.sermons.find(query, {"_id": 0})\
         .sort("date", -1)\
         .skip(skip)\
-        .limit(min(limit, 100))  # Cap limit at 100
+        .limit(min(limit, 100))\
         .to_list(min(limit, 100))
     
     for sermon in sermons:
@@ -1160,9 +1161,704 @@ async def create_sermon(
     
     return sermon
 
-# ... [Rest of the routes remain the same as your original code, 
-# but with database calls using MongoDBAtlas.get_database() instead of get_database()]
-# For brevity, I'm showing the pattern. You should update all database calls.
+@api_router.put("/sermons/{sermon_id}", response_model=Sermon)
+async def update_sermon(
+    sermon_id: str,
+    sermon_data: SermonCreate,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Update a sermon (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    existing = await database.sermons.find_one({"id": sermon_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Sermon not found")
+    
+    update_data = sermon_data.model_dump()
+    update_data['date'] = update_data['date'].isoformat()
+    
+    await database.sermons.update_one({"id": sermon_id}, {"$set": update_data})
+    
+    updated_sermon = await database.sermons.find_one({"id": sermon_id}, {"_id": 0})
+    if isinstance(updated_sermon.get('date'), str):
+        updated_sermon['date'] = datetime.fromisoformat(updated_sermon['date'].replace('Z', '+00:00'))
+    if isinstance(updated_sermon.get('created_at'), str):
+        updated_sermon['created_at'] = datetime.fromisoformat(updated_sermon['created_at'].replace('Z', '+00:00'))
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "update_sermon",
+        {"sermon_id": sermon_id},
+        request
+    ))
+    
+    return Sermon(**updated_sermon)
+
+@api_router.delete("/sermons/{sermon_id}")
+async def delete_sermon(
+    sermon_id: str,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Delete a sermon (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    result = await database.sermons.delete_one({"id": sermon_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Sermon not found")
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "delete_sermon",
+        {"sermon_id": sermon_id},
+        request
+    ))
+    
+    return {"message": "Sermon deleted successfully"}
+
+@api_router.post("/sermons/{sermon_id}/download")
+async def increment_download(sermon_id: str):
+    """Increment download count for a sermon"""
+    database = await MongoDBAtlas.get_database()
+    
+    result = await database.sermons.update_one(
+        {"id": sermon_id},
+        {"$inc": {"downloads": 1}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Sermon not found")
+    
+    return {"message": "Download count incremented"}
+
+# ==================== EVENT ROUTES ====================
+
+@api_router.get("/events", response_model=List[Event])
+async def get_events(
+    upcoming: bool = True,
+    skip: int = 0,
+    limit: int = 20,
+    category: Optional[str] = None,
+    featured: Optional[bool] = None
+):
+    """Get events with optional filtering"""
+    database = await MongoDBAtlas.get_database()
+    
+    query = {}
+    if upcoming:
+        query["date"] = {"$gte": datetime.now(timezone.utc).isoformat()}
+    if category:
+        query["category"] = category
+    if featured is not None:
+        query["featured"] = featured
+    
+    events = await database.events.find(query, {"_id": 0})\
+        .sort("date", 1)\
+        .skip(skip)\
+        .limit(min(limit, 100))\
+        .to_list(min(limit, 100))
+    
+    for event in events:
+        if isinstance(event.get('date'), str):
+            event['date'] = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
+        if event.get('end_date') and isinstance(event['end_date'], str):
+            event['end_date'] = datetime.fromisoformat(event['end_date'].replace('Z', '+00:00'))
+        if isinstance(event.get('created_at'), str):
+            event['created_at'] = datetime.fromisoformat(event['created_at'].replace('Z', '+00:00'))
+    
+    return events
+
+@api_router.get("/events/{event_id}", response_model=Event)
+async def get_event(event_id: str):
+    """Get a specific event by ID"""
+    database = await MongoDBAtlas.get_database()
+    
+    event = await database.events.find_one({"id": event_id}, {"_id": 0})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if isinstance(event.get('date'), str):
+        event['date'] = datetime.fromisoformat(event['date'].replace('Z', '+00:00'))
+    if event.get('end_date') and isinstance(event['end_date'], str):
+        event['end_date'] = datetime.fromisoformat(event['end_date'].replace('Z', '+00:00'))
+    if isinstance(event.get('created_at'), str):
+        event['created_at'] = datetime.fromisoformat(event['created_at'].replace('Z', '+00:00'))
+    
+    return event
+
+@api_router.post("/events", response_model=Event)
+async def create_event(
+    event_data: EventCreate,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Create a new event (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    event = Event(**event_data.model_dump())
+    event_dict = event.model_dump()
+    event_dict['date'] = event_dict['date'].isoformat()
+    if event_dict.get('end_date'):
+        event_dict['end_date'] = event_dict['end_date'].isoformat()
+    event_dict['created_at'] = event_dict['created_at'].isoformat()
+    
+    await database.events.insert_one(event_dict)
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "create_event",
+        {"event_id": event.id, "title": event.title},
+        request
+    ))
+    
+    return event
+
+@api_router.put("/events/{event_id}", response_model=Event)
+async def update_event(
+    event_id: str,
+    event_data: EventCreate,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Update an event (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    existing = await database.events.find_one({"id": event_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    update_data = event_data.model_dump()
+    update_data['date'] = update_data['date'].isoformat()
+    if update_data.get('end_date'):
+        update_data['end_date'] = update_data['end_date'].isoformat()
+    
+    await database.events.update_one({"id": event_id}, {"$set": update_data})
+    
+    updated_event = await database.events.find_one({"id": event_id}, {"_id": 0})
+    if isinstance(updated_event.get('date'), str):
+        updated_event['date'] = datetime.fromisoformat(updated_event['date'].replace('Z', '+00:00'))
+    if updated_event.get('end_date') and isinstance(updated_event['end_date'], str):
+        updated_event['end_date'] = datetime.fromisoformat(updated_event['end_date'].replace('Z', '+00:00'))
+    if isinstance(updated_event.get('created_at'), str):
+        updated_event['created_at'] = datetime.fromisoformat(updated_event['created_at'].replace('Z', '+00:00'))
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "update_event",
+        {"event_id": event_id},
+        request
+    ))
+    
+    return Event(**updated_event)
+
+@api_router.delete("/events/{event_id}")
+async def delete_event(
+    event_id: str,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Delete an event (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    result = await database.events.delete_one({"id": event_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Also delete related RSVPs
+    await database.event_rsvps.delete_many({"event_id": event_id})
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "delete_event",
+        {"event_id": event_id},
+        request
+    ))
+    
+    return {"message": "Event deleted successfully"}
+
+@api_router.post("/events/{event_id}/rsvp")
+async def rsvp_event(
+    event_id: str, 
+    rsvp_data: EventRSVP,
+    request: Request
+):
+    """RSVP for an event"""
+    database = await MongoDBAtlas.get_database()
+    
+    event = await database.events.find_one({"id": event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Check if registration is open
+    if not event.get('registration_open', True):
+        raise HTTPException(status_code=400, detail="Registration is closed for this event")
+    
+    # Check max attendees
+    max_attendees = event.get('max_attendees')
+    if max_attendees:
+        current_count = event.get('attendees_count', 0)
+        if current_count + rsvp_data.attendees > max_attendees:
+            raise HTTPException(status_code=400, detail="Event is full")
+    
+    # Check if already registered
+    existing_rsvp = await database.event_rsvps.find_one({"event_id": event_id, "email": rsvp_data.email})
+    if existing_rsvp:
+        raise HTTPException(status_code=400, detail="Already registered for this event")
+    
+    rsvp_dict = rsvp_data.model_dump()
+    rsvp_dict['id'] = str(uuid.uuid4())
+    rsvp_dict['created_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await database.event_rsvps.insert_one(rsvp_dict)
+    
+    # Update attendees count
+    await database.events.update_one(
+        {"id": event_id},
+        {"$inc": {"attendees_count": rsvp_data.attendees}}
+    )
+    
+    return {"message": "RSVP successful", "rsvp_id": rsvp_dict['id']}
+
+@api_router.get("/events/{event_id}/rsvps")
+async def get_event_rsvps(
+    event_id: str,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Get RSVPs for an event (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    rsvps = await database.event_rsvps.find(
+        {"event_id": event_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(1000)
+    
+    return rsvps
+
+# ==================== BLOG ROUTES ====================
+
+@api_router.get("/blog", response_model=List[Blog])
+async def get_blogs(
+    published_only: bool = True,
+    skip: int = 0,
+    limit: int = 20,
+    category: Optional[str] = None,
+    tag: Optional[str] = None,
+    featured: Optional[bool] = None
+):
+    """Get blog posts with optional filtering"""
+    database = await MongoDBAtlas.get_database()
+    
+    query = {}
+    if published_only:
+        query["published"] = True
+    if category:
+        query["category"] = category
+    if tag:
+        query["tags"] = tag
+    if featured is not None:
+        query["featured"] = featured
+    
+    blogs = await database.blogs.find(query, {"_id": 0})\
+        .sort("created_at", -1)\
+        .skip(skip)\
+        .limit(min(limit, 100))\
+        .to_list(min(limit, 100))
+    
+    for blog in blogs:
+        if isinstance(blog.get('created_at'), str):
+            blog['created_at'] = datetime.fromisoformat(blog['created_at'].replace('Z', '+00:00'))
+        if isinstance(blog.get('updated_at'), str):
+            blog['updated_at'] = datetime.fromisoformat(blog['updated_at'].replace('Z', '+00:00'))
+    
+    return blogs
+
+@api_router.get("/blog/{blog_id}", response_model=Blog)
+async def get_blog(blog_id: str, request: Request):
+    """Get a specific blog post by ID"""
+    database = await MongoDBAtlas.get_database()
+    
+    blog = await database.blogs.find_one({"id": blog_id}, {"_id": 0})
+    if not blog:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    # Increment views asynchronously (only for non-admin requests)
+    if not request.headers.get("Authorization"):
+        asyncio.create_task(database.blogs.update_one(
+            {"id": blog_id},
+            {"$inc": {"views": 1}}
+        ))
+    
+    if isinstance(blog.get('created_at'), str):
+        blog['created_at'] = datetime.fromisoformat(blog['created_at'].replace('Z', '+00:00'))
+    if isinstance(blog.get('updated_at'), str):
+        blog['updated_at'] = datetime.fromisoformat(blog['updated_at'].replace('Z', '+00:00'))
+    
+    return Blog(**blog)
+
+@api_router.post("/blog", response_model=Blog)
+async def create_blog(
+    blog_data: BlogCreate,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Create a new blog post (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    blog = Blog(**blog_data.model_dump())
+    blog_dict = blog.model_dump()
+    blog_dict['created_at'] = blog_dict['created_at'].isoformat()
+    blog_dict['updated_at'] = blog_dict['updated_at'].isoformat()
+    
+    await database.blogs.insert_one(blog_dict)
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "create_blog",
+        {"blog_id": blog.id, "title": blog.title},
+        request
+    ))
+    
+    return blog
+
+@api_router.put("/blog/{blog_id}", response_model=Blog)
+async def update_blog(
+    blog_id: str,
+    blog_data: BlogCreate,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Update a blog post (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    existing = await database.blogs.find_one({"id": blog_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    update_data = blog_data.model_dump()
+    update_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+    
+    await database.blogs.update_one({"id": blog_id}, {"$set": update_data})
+    
+    updated_blog = await database.blogs.find_one({"id": blog_id}, {"_id": 0})
+    if isinstance(updated_blog.get('created_at'), str):
+        updated_blog['created_at'] = datetime.fromisoformat(updated_blog['created_at'].replace('Z', '+00:00'))
+    if isinstance(updated_blog.get('updated_at'), str):
+        updated_blog['updated_at'] = datetime.fromisoformat(updated_blog['updated_at'].replace('Z', '+00:00'))
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "update_blog",
+        {"blog_id": blog_id},
+        request
+    ))
+    
+    return Blog(**updated_blog)
+
+@api_router.delete("/blog/{blog_id}")
+async def delete_blog(
+    blog_id: str,
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Delete a blog post (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    result = await database.blogs.delete_one({"id": blog_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "delete_blog",
+        {"blog_id": blog_id},
+        request
+    ))
+    
+    return {"message": "Blog post deleted successfully"}
+
+@api_router.post("/blog/{blog_id}/like")
+async def like_blog(blog_id: str):
+    """Like a blog post"""
+    database = await MongoDBAtlas.get_database()
+    
+    result = await database.blogs.update_one(
+        {"id": blog_id},
+        {"$inc": {"likes": 1}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    
+    return {"message": "Blog post liked"}
+
+# ==================== DONATION ROUTES ====================
+
+@api_router.post("/donations/create-payment-intent")
+async def create_payment_intent(donation_data: DonationCreate):
+    """Create Stripe payment intent for donation"""
+    if not stripe.api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    try:
+        # Create Stripe payment intent
+        intent = stripe.PaymentIntent.create(
+            amount=int(donation_data.amount * 100),  # Convert to cents
+            currency=donation_data.currency,
+            metadata={
+                "donor_name": donation_data.donor_name or "Anonymous",
+                "donor_email": donation_data.donor_email or "",
+                "message": donation_data.message or "",
+                "anonymous": str(donation_data.anonymous)
+            },
+            description=f"Donation to Heavenly Nature Ministry"
+        )
+        
+        # Save donation to database
+        database = await MongoDBAtlas.get_database()
+        donation = Donation(**donation_data.model_dump())
+        donation.payment_intent_id = intent.id
+        donation_dict = donation.model_dump()
+        donation_dict['created_at'] = donation_dict['created_at'].isoformat()
+        
+        await database.donations.insert_one(donation_dict)
+        
+        return {
+            "client_secret": intent.client_secret,
+            "donation_id": donation.id,
+            "amount": donation_data.amount,
+            "currency": donation_data.currency
+        }
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logging.error(f"Error creating payment intent: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@api_router.post("/donations/{donation_id}/confirm")
+async def confirm_donation(donation_id: str, payment_intent_id: str = Body(..., embed=True)):
+    """Confirm donation payment"""
+    database = await MongoDBAtlas.get_database()
+    
+    donation = await database.donations.find_one({"id": donation_id})
+    if not donation:
+        raise HTTPException(status_code=404, detail="Donation not found")
+    
+    try:
+        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        status_mapping = {
+            "succeeded": "succeeded",
+            "processing": "pending",
+            "requires_payment_method": "failed",
+            "canceled": "cancelled"
+        }
+        donation_status = status_mapping.get(intent.status, "pending")
+        
+        await database.donations.update_one(
+            {"id": donation_id},
+            {"$set": {"status": donation_status}}
+        )
+        
+        return {"status": donation_status, "amount_received": intent.amount_received}
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logging.error(f"Error confirming donation: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@api_router.get("/donations", response_model=List[Donation])
+async def get_donations(
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin),
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = None
+):
+    """Get all donations (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    donations = await database.donations.find(query, {"_id": 0})\
+        .sort("created_at", -1)\
+        .skip(skip)\
+        .limit(limit)\
+        .to_list(limit)
+    
+    for donation in donations:
+        if isinstance(donation.get('created_at'), str):
+            donation['created_at'] = datetime.fromisoformat(donation['created_at'].replace('Z', '+00:00'))
+    
+    return donations
+
+@api_router.get("/donations/summary")
+async def get_donation_summary(
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Get donation summary (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    pipeline = [
+        {"$match": {"status": "succeeded"}},
+        {"$group": {
+            "_id": None,
+            "total_amount": {"$sum": "$amount"},
+            "total_count": {"$sum": 1},
+            "average_amount": {"$avg": "$amount"}
+        }}
+    ]
+    
+    result = await database.donations.aggregate(pipeline).to_list(1)
+    
+    if result:
+        summary = result[0]
+        return {
+            "total_amount": summary.get("total_amount", 0),
+            "total_count": summary.get("total_count", 0),
+            "average_amount": summary.get("average_amount", 0)
+        }
+    
+    return {"total_amount": 0, "total_count": 0, "average_amount": 0}
+
+# ==================== CONTACT ROUTES ====================
+
+@api_router.post("/contact", response_model=ContactSubmission)
+async def submit_contact(
+    contact_data: ContactSubmission, 
+    request: Request, 
+    background_tasks: BackgroundTasks
+):
+    """Submit contact form with email notification"""
+    database = await MongoDBAtlas.get_database()
+    
+    # Rate limiting by IP
+    ip_address = request.client.host if request.client else "unknown"
+    
+    recent_submissions = await database.contact_submissions.count_documents({
+        "ip_address": ip_address,
+        "created_at": {"$gt": datetime.now(timezone.utc) - timedelta(hours=1)}
+    })
+    
+    if recent_submissions >= 5:
+        raise HTTPException(status_code=429, detail="Too many submissions. Please try again later.")
+    
+    contact_dict = contact_data.model_dump()
+    contact_dict['ip_address'] = ip_address
+    contact_dict['user_agent'] = request.headers.get("user-agent")
+    contact_dict['created_at'] = contact_dict['created_at'].isoformat()
+    
+    await database.contact_submissions.insert_one(contact_dict)
+    
+    # Send email notification in background
+    background_tasks.add_task(send_contact_notification, contact_data)
+    
+    return contact_data
+
+@api_router.get("/contact", response_model=List[ContactSubmission])
+async def get_contact_submissions(
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin),
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = None
+):
+    """Get contact submissions (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    submissions = await database.contact_submissions.find(query, {"_id": 0})\
+        .sort("created_at", -1)\
+        .skip(skip)\
+        .limit(limit)\
+        .to_list(limit)
+    
+    for submission in submissions:
+        if isinstance(submission.get('created_at'), str):
+            submission['created_at'] = datetime.fromisoformat(submission['created_at'].replace('Z', '+00:00'))
+    
+    return submissions
+
+@api_router.put("/contact/{contact_id}/status")
+async def update_contact_status(
+    contact_id: str,
+    request: Request,
+    status: str = Body(..., embed=True),
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Update contact submission status (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    result = await database.contact_submissions.update_one(
+        {"id": contact_id},
+        {"$set": {"status": status}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Contact submission not found")
+    
+    # Log activity
+    asyncio.create_task(log_activity(
+        auth_data["user"]["id"],
+        "update_contact_status",
+        {"contact_id": contact_id, "status": status},
+        request
+    ))
+    
+    return {"message": "Status updated successfully"}
+
+# ==================== STATS ROUTES ====================
+
+@api_router.get("/stats")
+async def get_stats(
+    request: Request,
+    auth_data: Dict[str, Any] = Depends(get_current_admin)
+):
+    """Get system statistics (admin only)"""
+    database = await MongoDBAtlas.get_database()
+    
+    # Run all counts in parallel for better performance
+    counts = await asyncio.gather(
+        database.users.count_documents({"is_active": True}),
+        database.sermons.count_documents({}),
+        database.events.count_documents({"date": {"$gte": datetime.now(timezone.utc).isoformat()}}),
+        database.blogs.count_documents({"published": True}),
+        database.donations.count_documents({"status": "succeeded"}),
+        database.contact_submissions.count_documents({"status": "new"})
+    )
+    
+    # Get total donation amount
+    pipeline = [
+        {"$match": {"status": "succeeded"}},
+        {"$group": {"_id": None, "total_amount": {"$sum": "$amount"}}}
+    ]
+    
+    donation_result = await database.donations.aggregate(pipeline).to_list(1)
+    total_amount = donation_result[0]["total_amount"] if donation_result else 0
+    
+    return {
+        "users": counts[0],
+        "sermons": counts[1],
+        "upcoming_events": counts[2],
+        "published_blogs": counts[3],
+        "successful_donations": counts[4],
+        "donation_amount": total_amount,
+        "new_contact_submissions": counts[5]
+    }
 
 # ==================== HEALTH CHECK ====================
 
