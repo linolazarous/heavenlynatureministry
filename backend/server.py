@@ -703,6 +703,23 @@ async def send_contact_notification(contact_data: ContactSubmission):
         text_content=text_content
     )
 
+# ==================== MAIN ROOT ENDPOINT ====================
+
+@app.get("/")
+async def main_root():
+    """Main application root endpoint"""
+    return {
+        "message": "Heavenly Nature Ministry API",
+        "description": "Welcome to Heavenly Nature Ministry - Production Ready Backend Service",
+        "status": "online",
+        "version": "2.0.0",
+        "environment": ENVIRONMENT,
+        "api_base": "/api",
+        "documentation": "/docs",
+        "health_check": "/api/health",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
 # ==================== AUTH ROUTES ====================
 
 class LoginRequest(BaseModel):
@@ -1421,14 +1438,24 @@ async def health_check():
     }
 
 @api_router.get("/")
-async def root():
+async def api_root():
+    """API root endpoint"""
     return {
         "message": "Heavenly Nature Ministry API",
         "status": "online",
         "version": "2.0.0",
         "environment": ENVIRONMENT,
-        "docs": "/docs" if not IS_PRODUCTION else None,
-        "health": "/api/health"
+        "description": "API endpoints available",
+        "endpoints": {
+            "auth": "/api/auth/*",
+            "sermons": "/api/sermons",
+            "events": "/api/events",
+            "blog": "/api/blog",
+            "contact": "/api/contact",
+            "donations": "/api/donations/*",
+            "health": "/api/health"
+        },
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 # ==================== APP CONFIGURATION ====================
