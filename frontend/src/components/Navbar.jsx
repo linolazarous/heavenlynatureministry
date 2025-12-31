@@ -107,7 +107,11 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <span className="text-2xl font-bold text-blue-600">HNM</span>
+            <img 
+              src="/images/logo.png" 
+              alt="Heavenly Nature Ministry Logo" 
+              className="h-10 w-auto"
+            />
             <span className="hidden sm:block text-lg font-semibold text-gray-800">
               Heavenly Nature Ministry
             </span>
