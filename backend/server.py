@@ -254,9 +254,9 @@ app = FastAPI(
     title="Heavenly Nature Ministry API",
     description="Backend API for Heavenly Nature Ministry - Production Ready",
     version="2.0.0",
-    docs_url="/docs" if not IS_PRODUCTION else None,
-    redoc_url="/redoc" if not IS_PRODUCTION else None,
-    openapi_url="/openapi.json" if not IS_PRODUCTION else None,
+    docs_url="/docs",  # Always show docs
+    redoc_url="/redoc",  # Always show redoc
+    openapi_url="/openapi.json",  # Always show openapi
 )
 
 # Create API router
