@@ -43,11 +43,11 @@ JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', "HS256")
 JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', 24))
 
 # Admin Configuration
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'HeavenlyNature')
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD')
 if not ADMIN_PASSWORD:
     raise ValueError("❌ ADMIN_PASSWORD must be set in environment variables")
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@heavenlynatureministry.com')
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'info@heavenlynatureministry.com')
 
 # Stripe Configuration
 STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY')
@@ -64,6 +64,10 @@ FROM_NAME = os.environ.get('FROM_NAME', 'Heavenly Nature Ministry')
 # Environment
 ENVIRONMENT = os.environ.get('ENVIRONMENT', 'production')
 IS_PRODUCTION = ENVIRONMENT == 'production'
+
+# Render-specific configuration
+RENDER = os.environ.get('RENDER', 'false').lower() == 'true'
+RENDER_EXTERNAL_URL = os.environ.get('RENDER_EXTERNAL_URL', '')
 
 # ==================== DATABASE CONNECTION ====================
 
@@ -1091,9 +1095,6 @@ async def create_sermon(
     
     return sermon
 
-# ... [Continuing with all other routes using .dict() instead of .model_dump()]
-# I'll show a few more examples, but you need to update ALL occurrences
-
 @api_router.put("/sermons/{sermon_id}", response_model=Sermon)
 async def update_sermon(
     sermon_id: str,
@@ -1448,13 +1449,18 @@ app.add_middleware(
     max_age=600,
 )
 
-if IS_PRODUCTION:
+# IMPORTANT: Configure TrustedHostMiddleware for Render
+if IS_PRODUCTION and not RENDER:
+    # Only use strict host checking if NOT on Render
     trusted_hosts = os.environ.get('TRUSTED_HOSTS', '').split(',')
     if trusted_hosts and trusted_hosts != ['']:
         app.add_middleware(
             TrustedHostMiddleware,
             allowed_hosts=trusted_hosts
         )
+else:
+    # On Render, allow all hosts
+    logging.info("Running on Render - disabling strict host checking")
 
 logging.basicConfig(
     level=logging.INFO if IS_PRODUCTION else logging.DEBUG,
@@ -1471,6 +1477,7 @@ async def startup_event():
     logger.info("🚀 Starting Heavenly Nature Ministry API v2.0.0")
     logger.info(f"🌍 Environment: {ENVIRONMENT}")
     logger.info(f"🗄️  Database: {DB_NAME}")
+    logger.info(f"🎯 Render mode: {'ENABLED' if RENDER else 'DISABLED'}")
     
     try:
         await MongoDBAtlas.get_client()
