@@ -20,6 +20,7 @@ import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # ==================== CONFIGURATION ====================
 
@@ -247,9 +248,41 @@ async def create_indexes():
 # Security
 security = HTTPBearer(auto_error=False)
 
+# ==================== CUSTOM MIDDLEWARE FOR REDOC ====================
+
+class RedocSecurityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        
+        # Relax CSP for ReDoc to allow external scripts
+        if request.url.path in ["/redoc", "/docs"]:
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdn.redoc.ly; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; "
+                "font-src 'self' https://fonts.gstatic.com data:; "
+                "img-src 'self' data: https:; "
+                "connect-src 'self';"
+            )
+        else:
+            # Standard CSP for other endpoints
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self'; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https:;"
+            )
+        
+        # Additional security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        
+        return response
+
 # ==================== FASTAPI APP SETUP ====================
 
-# Create the main app
+# Create the main app with enhanced configuration for ReDoc
 app = FastAPI(
     title="Heavenly Nature Ministry API",
     description="Backend API for Heavenly Nature Ministry - Production Ready",
@@ -257,6 +290,25 @@ app = FastAPI(
     docs_url="/docs",  # Always show docs
     redoc_url="/redoc",  # Always show redoc
     openapi_url="/openapi.json",  # Always show openapi
+    contact={
+        "name": "Heavenly Nature Ministry Support",
+        "email": "info@heavenlynatureministry.com",
+        "url": "https://heavenlynatureministry.com"
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    servers=[
+        {
+            "url": "https://hnmbackend-gedp.onrender.com",
+            "description": "Production server"
+        },
+        {
+            "url": "http://localhost:8000",
+            "description": "Development server"
+        }
+    ]
 )
 
 # Create API router
@@ -715,10 +767,53 @@ async def main_root():
         "version": "2.0.0",
         "environment": ENVIRONMENT,
         "api_base": "/api",
-        "documentation": "/docs",
+        "documentation": {
+            "swagger": "/docs",
+            "redoc": "/redoc",
+            "openapi": "/openapi.json"
+        },
         "health_check": "/api/health",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+# ==================== CUSTOM REDOC ENDPOINT ====================
+
+@app.get("/redoc", include_in_schema=False)
+async def custom_redoc():
+    """Custom ReDoc endpoint with proper CSP for Render"""
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Heavenly Nature Ministry API - ReDoc</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Heavenly Nature Ministry API Documentation">
+        <!-- ReDoc doesn't work well with strict CSP, so we relax it for this page -->
+        <meta http-equiv="Content-Security-Policy" content="
+            default-src 'self';
+            script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com;
+            style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+            font-src 'self' https://fonts.gstatic.com data:;
+            img-src 'self' data: https:;
+            connect-src 'self';
+        ">
+        <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700" rel="stylesheet">
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <redoc spec-url='/openapi.json'></redoc>
+        <!-- Using CDN version that works well with Render -->
+        <script src="https://cdn.jsdelivr.net/npm/redoc@latest/bundles/redoc.standalone.js"></script>
+    </body>
+    </html>
+    """
+    return Response(content=html_content, media_type="text/html")
 
 # ==================== AUTH ROUTES ====================
 
@@ -1460,20 +1555,40 @@ async def api_root():
 
 # ==================== APP CONFIGURATION ====================
 
+# Add custom middleware for ReDoc first
+app.add_middleware(RedocSecurityMiddleware)
+
+# Then include the API router
 app.include_router(api_router)
 
+# Configure CORS
 cors_origins = os.environ.get('CORS_ORIGINS', '').split(',')
 if not cors_origins or cors_origins == ['']:
-    cors_origins = ["http://localhost:3000", "http://localhost:5173"]
+    cors_origins = ["http://localhost:3000", "http://localhost:5173", "https://hnmbackend-gedp.onrender.com"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["Content-Range", "X-Content-Range"],
-    max_age=600,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "User-Agent",
+        "DNT",
+        "Cache-Control",
+        "X-Mx-ReqToken",
+        "Keep-Alive",
+        "X-Requested-With",
+        "If-Modified-Since",
+        "X-CSRF-Token",
+        "Access-Control-Allow-Origin",
+        "*"
+    ],
+    expose_headers=["Content-Range", "X-Content-Range", "Content-Length", "Content-Type"],
+    max_age=86400,  # 24 hours
 )
 
 # IMPORTANT: Configure TrustedHostMiddleware for Render
