@@ -80,3 +80,57 @@ module.exports = {
   },
   plugins: [require("tailwindcss-animate")],
 };
+
+// Add these animations to your tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'fade-out': 'fadeOut 0.3s ease-out',
+        'scale-in': 'scaleIn 0.3s ease-out',
+        'scale-out': 'scaleOut 0.3s ease-out',
+        'accordion-down': 'accordionDown 0.3s ease-out',
+        'accordion-up': 'accordionUp 0.3s ease-out',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        fadeOut: {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
+        scaleIn: {
+          '0%': { 
+            opacity: '0',
+            transform: 'translate(-50%, -50%) scale(0.95)',
+          },
+          '100%': { 
+            opacity: '1',
+            transform: 'translate(-50%, -50%) scale(1)',
+          },
+        },
+        scaleOut: {
+          '0%': { 
+            opacity: '1',
+            transform: 'translate(-50%, -50%) scale(1)',
+          },
+          '100%': { 
+            opacity: '0',
+            transform: 'translate(-50%, -50%) scale(0.95)',
+          },
+        },
+        accordionDown: {
+          from: { height: '0' },
+          to: { height: 'var(--accordion-content-height)' },
+        },
+        accordionUp: {
+          from: { height: 'var(--accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+    },
+  },
+}
