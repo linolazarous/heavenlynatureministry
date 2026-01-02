@@ -257,30 +257,33 @@ const SelectSeparator = React.forwardRef(({ className, ...props }, ref) => (
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
-const SelectSearch = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, placeholder = "Search...", onChange, ...props }, ref) => {
-    return (
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-800">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            ref={ref}
-            type="search"
-            placeholder={placeholder}
-            className={cn(
-              "w-full rounded-lg border border-gray-300 dark:border-gray-700",
-              "bg-white dark:bg-gray-900 px-10 py-2 text-sm",
-              "focus:outline-none focus:ring-2 focus:ring-blue-500/20",
-              className
-            )}
-            onChange={onChange}
-            {...props}
-          />
-        </div>
+const SelectSearch = React.forwardRef(({
+  className,
+  placeholder = "Search...",
+  onChange,
+  ...props
+}, ref) => {
+  return (
+    <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 px-3 py-2 border-b border-gray-200 dark:border-gray-800">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          ref={ref}
+          type="search"
+          placeholder={placeholder}
+          className={cn(
+            "w-full rounded-lg border border-gray-300 dark:border-gray-700",
+            "bg-white dark:bg-gray-900 px-10 py-2 text-sm",
+            "focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+            className
+          )}
+          onChange={onChange}
+          {...props}
+        />
       </div>
-    );
-  }
-);
+    </div>
+  );
+});
 SelectSearch.displayName = "SelectSearch";
 
 export {
