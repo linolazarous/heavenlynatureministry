@@ -1,26 +1,15 @@
 import * as React from "react";
-import { Toaster as Sonner, toast, ToastT } from "sonner";
+import { Toaster as Sonner, toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle,
   XCircle,
   AlertCircle,
   Info,
-  X,
   Loader2,
 } from "lucide-react";
 
-type ToasterProps = React.ComponentProps<typeof Sonner>;
-
-const Toaster = React.forwardRef<HTMLDivElement, ToasterProps & {
-  position?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "top-center" | "bottom-center";
-  expand?: boolean;
-  richColors?: boolean;
-  closeButton?: boolean;
-  duration?: number;
-  visibleToasts?: number;
-  theme?: "light" | "dark" | "system";
-}>(({
+const Toaster = React.forwardRef(({
   position = "bottom-right",
   expand = false,
   richColors = true,
@@ -38,14 +27,6 @@ const Toaster = React.forwardRef<HTMLDivElement, ToasterProps & {
     "bottom-right": "bottom-4 right-4",
     "top-center": "top-4 left-1/2 -translate-x-1/2",
     "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
-  };
-
-  const iconMap = {
-    success: CheckCircle,
-    error: XCircle,
-    warning: AlertCircle,
-    info: Info,
-    loading: Loader2,
   };
 
   return (
@@ -126,50 +107,35 @@ const Toaster = React.forwardRef<HTMLDivElement, ToasterProps & {
 Toaster.displayName = "Toaster";
 
 // Enhanced toast functions
-const toastSuccess = (
-  message: string,
-  options?: Omit<ToastT, "title" | "type">
-) => {
+const toastSuccess = (message, options) => {
   return toast.success(message, {
     icon: <CheckCircle className="h-4 w-4" />,
     ...options,
   });
 };
 
-const toastError = (
-  message: string,
-  options?: Omit<ToastT, "title" | "type">
-) => {
+const toastError = (message, options) => {
   return toast.error(message, {
     icon: <XCircle className="h-4 w-4" />,
     ...options,
   });
 };
 
-const toastWarning = (
-  message: string,
-  options?: Omit<ToastT, "title" | "type">
-) => {
+const toastWarning = (message, options) => {
   return toast.warning(message, {
     icon: <AlertCircle className="h-4 w-4" />,
     ...options,
   });
 };
 
-const toastInfo = (
-  message: string,
-  options?: Omit<ToastT, "title" | "type">
-) => {
+const toastInfo = (message, options) => {
   return toast.info(message, {
     icon: <Info className="h-4 w-4" />,
     ...options,
   });
 };
 
-const toastLoading = (
-  message: string,
-  options?: Omit<ToastT, "title" | "type">
-) => {
+const toastLoading = (message, options) => {
   return toast.loading(message, {
     icon: <Loader2 className="h-4 w-4 animate-spin" />,
     ...options,
@@ -177,14 +143,7 @@ const toastLoading = (
 };
 
 // Toast promise wrapper
-const toastPromise = <T,>(
-  promise: Promise<T>,
-  options: {
-    loading?: string;
-    success?: string | ((data: T) => string);
-    error?: string | ((error: any) => string);
-  }
-) => {
+const toastPromise = (promise, options) => {
   return toast.promise(promise, {
     loading: options.loading || "Loading...",
     success: options.success || "Success!",
