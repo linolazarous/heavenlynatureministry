@@ -2,18 +2,24 @@ import * as React from "react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 import { cn } from "@/lib/utils";
 
-const Progress = React.forwardRef(({
-  className,
-  value = 0,
-  max = 100,
-  size = "default",
-  variant = "default",
-  showValue = false,
-  label,
-  animate = true,
-  striped = false,
-  ...props
-}, ref) => {
+/**
+ * Progress
+ */
+const Progress = React.forwardRef(function Progress(
+  {
+    className,
+    value = 0,
+    max = 100,
+    size = "default",
+    variant = "default",
+    showValue = false,
+    label,
+    animate = true,
+    striped = false,
+    ...props
+  },
+  ref
+) {
   const clampedValue = Math.max(0, Math.min(value, max));
   const percentage = (clampedValue / max) * 100;
 
@@ -57,6 +63,7 @@ const Progress = React.forwardRef(({
           )}
         </div>
       )}
+
       <ProgressPrimitive.Root
         ref={ref}
         value={clampedValue}
@@ -84,44 +91,51 @@ const Progress = React.forwardRef(({
     </div>
   );
 });
+
 Progress.displayName = "Progress";
 
-// Compound progress components
-const ProgressGroup = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
-  ({ className, ...props }, ref) => (
+/**
+ * ProgressGroup
+ */
+const ProgressGroup = React.forwardRef(function ProgressGroup(
+  { className, ...props },
+  ref
+) {
+  return (
     <div
       ref={ref}
       className={cn("space-y-4", className)}
       {...props}
     />
-  )
-);
+  );
+});
+
 ProgressGroup.displayName = "ProgressGroup";
 
-const ProgressItem = React.forwardRef<HTMLDivElement, {
-  label: string;
-  value: number;
-  max?: number;
-  color?: string;
-} & React.ComponentProps<"div">>(
-  ({ className, label, value, max = 100, color, ...props }, ref) => {
-    const percentage = (value / max) * 100;
+/**
+ * ProgressItem
+ */
+const ProgressItem = React.forwardRef(function ProgressItem(
+  { className, label, value, max = 100, ...props },
+  ref
+) {
+  const percentage = (value / max) * 100;
 
-    return (
-      <div ref={ref} className={cn("space-y-2", className)} {...props}>
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            {label}
-          </span>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
-            {Math.round(percentage)}%
-          </span>
-        </div>
-        <Progress value={value} max={max} className="h-2" />
+  return (
+    <div ref={ref} className={cn("space-y-2", className)} {...props}>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          {label}
+        </span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">
+          {Math.round(percentage)}%
+        </span>
       </div>
-    );
-  }
-);
+      <Progress value={value} max={max} className="h-2" />
+    </div>
+  );
+});
+
 ProgressItem.displayName = "ProgressItem";
 
 export { Progress, ProgressGroup, ProgressItem };
