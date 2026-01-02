@@ -1,60 +1,144 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="description" content="A product of emergent.sh" />
-        <!--
-        manifest.json provides metadata used when your web app is installed on a
-        user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-        -->
-        <!--
-        Notice the use of %PUBLIC_URL% in the tags above.
-        It will be replaced with the URL of the `public` folder during the build.
-        Only files inside the `public` folder can be referenced from the HTML.
-
-        Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-        work correctly both with client-side routing and a non-root public URL.
-        Learn how to configure a non-root public URL by running `npm run build`.
-        -->
+        
+        <!-- Primary Meta Tags -->
         <title>Heavenly Nature Ministry | Juba, South Sudan</title>
+        <meta name="description" content="A Christian ministry based in Juba, South Sudan, dedicated to spiritual growth and community development." />
+        <meta name="theme-color" content="#000000" />
+        
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Heavenly Nature Ministry | Juba, South Sudan" />
+        <meta property="og:description" content="A Christian ministry based in Juba, South Sudan, dedicated to spiritual growth and community development." />
+        <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+        <meta property="og:url" content="https://yourdomain.com" />
+        
+        <!-- Twitter -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Heavenly Nature Ministry | Juba, South Sudan" />
+        <meta name="twitter:description" content="A Christian ministry based in Juba, South Sudan, dedicated to spiritual growth and community development." />
+        <meta name="twitter:image" content="%PUBLIC_URL%/twitter-image.jpg" />
+        
+        <!-- Favicon -->
+        <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="any" />
+        <link rel="icon" href="%PUBLIC_URL%/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+        
+        <!-- Manifest -->
+        <link rel="manifest" href="%PUBLIC_URL%/manifest.json" crossorigin="use-credentials" />
+        
+        <!-- Canonical URL -->
+        <link rel="canonical" href="https://yourdomain.com" />
+        
+        <!-- Preconnect to CDNs for performance -->
+        <link rel="preconnect" href="https://assets.emergent.sh" />
+        <link rel="preconnect" href="https://cdn.tailwindcss.com" />
+        <link rel="preconnect" href="https://us.i.posthog.com" />
+        
+        <!-- Critical CSS (inline for performance) -->
+        <style>
+            /* Prevent FOUC */
+            [data-loading] { display: none; }
+            
+            /* Basic layout styles */
+            body { 
+                margin: 0; 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            
+            /* Loading state */
+            #root:empty::before {
+                content: '';
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 50px;
+                height: 50px;
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #3498db;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            
+            @keyframes spin {
+                0% { transform: translate(-50%, -50%) rotate(0deg); }
+                100% { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+        </style>
+        
+        <!-- Visual edit scripts (loaded only in iframe/editor context) -->
         <script>
             // Only load visual edit scripts when inside an iframe
             if (window.self !== window.top) {
                 // Load debug monitor script
-                var debugMonitorScript = document.createElement('script');
-                debugMonitorScript.src = 'https://assets.emergent.sh/scripts/debug-monitor.js';
-                document.head.appendChild(debugMonitorScript);
+                (function() {
+                    var script = document.createElement('script');
+                    script.src = 'https://assets.emergent.sh/scripts/debug-monitor.js';
+                    script.async = true;
+                    script.crossOrigin = 'anonymous';
+                    document.head.appendChild(script);
+                })();
 
-                // Configure Tailwind
-                window.tailwind = window.tailwind || {};
-                tailwind.config = {
-                    corePlugins: { preflight: false },
-                };
-
-                // Load Tailwind CDN
-                var tailwindScript = document.createElement('script');
-                tailwindScript.src = 'https://cdn.tailwindcss.com';
-                document.head.appendChild(tailwindScript);
+                // Configure and load Tailwind for editor context
+                (function() {
+                    window.tailwind = window.tailwind || {};
+                    tailwind.config = {
+                        corePlugins: { preflight: false },
+                    };
+                    
+                    var script = document.createElement('script');
+                    script.src = 'https://cdn.tailwindcss.com';
+                    script.async = true;
+                    script.crossOrigin = 'anonymous';
+                    document.head.appendChild(script);
+                })();
             }
         </script>
     </head>
     <body>
-        <noscript>You need to enable JavaScript to run this app.</noscript>
-        <div id="root"></div>
-        <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+        <!-- No JavaScript fallback -->
+        <noscript>
+            <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                padding: 20px;
+                z-index: 9999;
+            ">
+                <div>
+                    <h1 style="font-size: 24px; margin-bottom: 16px; color: #333;">
+                        JavaScript Required
+                    </h1>
+                    <p style="margin-bottom: 20px; color: #666; max-width: 500px;">
+                        Heavenly Nature Ministry website requires JavaScript to function properly. 
+                        Please enable JavaScript in your browser settings to continue.
+                    </p>
+                    <p style="color: #888; font-size: 14px;">
+                        Contact us: <a href="mailto:info@heavenlynature.org" style="color: #3498db;">info@heavenlynature.org</a>
+                    </p>
+                </div>
+            </div>
+        </noscript>
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+        <!-- React root -->
+        <div id="root" role="main" aria-label="Main content"></div>
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-
+        <!-- PostHog Analytics -->
         <script>
+            // PostHog initialization with production settings
             !(function (t, e) {
                 var o, n, p, r;
                 e.__SV ||
@@ -75,38 +159,23 @@
                                     );
                                 });
                         }
-                        ((p = t.createElement("script")).type =
-                            "text/javascript"),
+                        ((p = t.createElement("script")).type = "text/javascript"),
                             (p.crossOrigin = "anonymous"),
                             (p.async = !0),
-                            (p.src =
-                                s.api_host.replace(
-                                    ".i.posthog.com",
-                                    "-assets.i.posthog.com",
-                                ) + "/static/array.js"),
-                            (r =
-                                t.getElementsByTagName(
-                                    "script",
-                                )[0]).parentNode.insertBefore(p, r);
+                            (p.src = s.api_host.replace(".i.posthog.com", "-assets.i.posthog.com") + "/static/array.js"),
+                            (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r);
                         var u = e;
                         for (
                             void 0 !== a ? (u = e[a] = []) : (a = "posthog"),
                                 u.people = u.people || [],
                                 u.toString = function (t) {
                                     var e = "posthog";
-                                    return (
-                                        "posthog" !== a && (e += "." + a),
-                                        t || (e += " (stub)"),
-                                        e
-                                    );
+                                    return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e;
                                 },
                                 u.people.toString = function () {
                                     return u.toString(1) + ".people (stub)";
                                 },
-                                o =
-                                    "init me ws ys ps bs capture je Di ks register register_once register_for_session unregister unregister_for_session Ps getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Es $s createPersonProfile Is opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing Ss debug xs getPageViewId captureTraceFeedback captureTraceMetric".split(
-                                        " ",
-                                    ),
+                                o = "init me ws ys ps bs capture je Di ks register register_once register_for_session unregister unregister_for_session Ps getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Es $s createPersonProfile Is opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing Ss debug xs getPageViewId captureTraceFeedback captureTraceMetric".split(" "),
                                 n = 0;
                             n < o.length;
                             n++
@@ -116,9 +185,76 @@
                     }),
                     (e.__SV = 1));
             })(document, window.posthog || []);
+            
+            // Initialize PostHog with production settings
             posthog.init("phc_yJW1VjHGGwmCbbrtczfqqNxgBDbhlhOWcdzcIJEOTFE", {
                 api_host: "https://us.i.posthog.com",
-                person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well
+                person_profiles: "identified_only",
+                autocapture: true,
+                capture_pageview: true,
+                capture_pageleave: true,
+                session_recording: {
+                    maskAllInputs: true,
+                    maskInputOptions: {
+                        password: true,
+                        email: true,
+                        tel: true
+                    }
+                },
+                advanced_disable_decide: false,
+                opt_out_capturing_by_default: false
+            });
+            
+            // GDPR/Privacy compliance - uncomment if needed
+            // if (window.location.hostname === 'localhost') {
+            //     posthog.opt_out_capturing();
+            // }
+            
+            // Optional: Add user consent check
+            // if (localStorage.getItem('analytics_consent') === 'true') {
+            //     posthog.opt_in_capturing();
+            // }
+        </script>
+
+        <!-- Performance monitoring -->
+        <script>
+            // Performance monitoring
+            if ('performance' in window) {
+                window.addEventListener('load', function() {
+                    setTimeout(function() {
+                        var timing = performance.getEntriesByType('navigation')[0];
+                        if (timing && window.posthog) {
+                            posthog.capture('page_load', {
+                                'domContentLoaded': timing.domContentLoadedEventEnd - timing.fetchStart,
+                                'loadTime': timing.loadEventEnd - timing.fetchStart,
+                                'firstContentfulPaint': performance.getEntriesByName('first-contentful-paint')[0]?.startTime || 0
+                            });
+                        }
+                    }, 0);
+                });
+            }
+            
+            // Error tracking
+            window.addEventListener('error', function(e) {
+                if (window.posthog) {
+                    posthog.capture('javascript_error', {
+                        $current_url: window.location.href,
+                        message: e.message,
+                        filename: e.filename,
+                        lineno: e.lineno,
+                        colno: e.colno
+                    });
+                }
+            });
+            
+            // Unhandled promise rejections
+            window.addEventListener('unhandledrejection', function(e) {
+                if (window.posthog) {
+                    posthog.capture('unhandled_promise_rejection', {
+                        $current_url: window.location.href,
+                        reason: e.reason?.message || e.reason
+                    });
+                }
             });
         </script>
     </body>
