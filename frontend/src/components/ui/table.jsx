@@ -243,45 +243,44 @@ const TableCaption = React.forwardRef(({
 TableCaption.displayName = "TableCaption";
 
 // Enhanced Table components
-const TableContainer = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden", className)}
-      {...props}
-    />
-  )
-);
+const TableContainer = React.forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden", className)}
+    {...props}
+  />
+));
 TableContainer.displayName = "TableContainer";
 
-const TableEmpty = React.forwardRef<HTMLDivElement, React.ComponentProps<"div"> & {
-  title?: string;
-  description?: string;
-  icon?: React.ReactNode;
-}>(
-  ({ className, title = "No data", description, icon, children, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "flex flex-col items-center justify-center py-12 px-4",
-        "text-center",
-        className
-      )}
-      {...props}
-    >
-      {icon && <div className="mb-4 text-gray-400 dark:text-gray-500">{icon}</div>}
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-        {title}
-      </h3>
-      {description && (
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-sm">
-          {description}
-        </p>
-      )}
-      {children}
-    </div>
-  )
-);
+const TableEmpty = React.forwardRef(({
+  className,
+  title = "No data",
+  description,
+  icon,
+  children,
+  ...props
+}, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "flex flex-col items-center justify-center py-12 px-4",
+      "text-center",
+      className
+    )}
+    {...props}
+  >
+    {icon && <div className="mb-4 text-gray-400 dark:text-gray-500">{icon}</div>}
+    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+      {title}
+    </h3>
+    {description && (
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-sm">
+        {description}
+      </p>
+    )}
+    {children}
+  </div>
+));
 TableEmpty.displayName = "TableEmpty";
 
 export {
