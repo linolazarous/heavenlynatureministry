@@ -173,54 +173,52 @@ const TabsContent = React.forwardRef(({
 TabsContent.displayName = TabsPrimitive.Content.displayName;
 
 // Enhanced Tabs components
-const TabsPanel = React.forwardRef<HTMLDivElement, React.ComponentProps<"div"> & {
-  value: string;
-  lazy?: boolean;
-  unmountOnExit?: boolean;
-}>(
-  ({ className, value, lazy, unmountOnExit, children, ...props }, ref) => {
-    const [isLoaded, setIsLoaded] = React.useState(!lazy);
+const TabsPanel = React.forwardRef(({
+  className,
+  value,
+  lazy,
+  unmountOnExit,
+  children,
+  ...props
+}, ref) => {
+  const [isLoaded, setIsLoaded] = React.useState(!lazy);
 
-    React.useEffect(() => {
-      if (lazy && !isLoaded) {
-        setIsLoaded(true);
-      }
-    }, [lazy, isLoaded]);
-
+  React.useEffect(() => {
     if (lazy && !isLoaded) {
-      return null;
+      setIsLoaded(true);
     }
+  }, [lazy, isLoaded]);
 
-    return (
-      <TabsContent
-        ref={ref}
-        value={value}
-        className={className}
-        unmountOnExit={unmountOnExit}
-        {...props}
-      >
-        {children}
-      </TabsContent>
-    );
+  if (lazy && !isLoaded) {
+    return null;
   }
-);
+
+  return (
+    <TabsContent
+      ref={ref}
+      value={value}
+      className={className}
+      unmountOnExit={unmountOnExit}
+      {...props}
+    >
+      {children}
+    </TabsContent>
+  );
+});
 TabsPanel.displayName = "TabsPanel";
 
-const TabsIndicator = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-500",
-        "transition-all duration-300 ease-out",
-        className
-      )}
-      {...props}
-    />
-  )
-);
+const TabsIndicator = React.forwardRef(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "absolute bottom-0 h-0.5 bg-blue-600 dark:bg-blue-500",
+      "transition-all duration-300 ease-out",
+      className
+    )}
+    {...props}
+  />
+));
 TabsIndicator.displayName = "TabsIndicator";
-
 export {
   Tabs,
   TabsList,
