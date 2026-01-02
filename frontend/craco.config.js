@@ -1,51 +1,45 @@
 // frontend/craco.config.js
-const path = require('path');
+const path = require("path");
 
 module.exports = {
   webpack: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      "@": path.resolve(__dirname, "src"),
     },
     configure: (webpackConfig) => {
-      // Remove ESLint plugin for production builds
-      if (process.env.NODE_ENV === 'production') {
+      // Remove ESLint from production builds (safe)
+      if (process.env.NODE_ENV === "production") {
         webpackConfig.plugins = webpackConfig.plugins.filter(
-          (plugin) => plugin.constructor.name !== 'ESLintWebpackPlugin'
+          (plugin) => plugin.constructor?.name !== "ESLintWebpackPlugin"
         );
       }
-      
-      // Optimize bundle splitting
-      if (process.env.NODE_ENV === 'production') {
+
+      // Stable production optimizations
+      if (process.env.NODE_ENV === "production") {
         webpackConfig.optimization = {
           ...webpackConfig.optimization,
           splitChunks: {
-            chunks: 'all',
-            cacheGroups: {
-              vendor: {
-                test: /[\\/]node_modules[\\/]/,
-                name: 'vendors',
-                chunks: 'all',
-              },
-            },
+            chunks: "all",
+            name: false,
           },
-          runtimeChunk: {
-            name: 'runtime',
-          },
+          runtimeChunk: "single",
         };
       }
-      
+
       return webpackConfig;
     },
   },
+
   eslint: {
-    enable: process.env.NODE_ENV !== 'production',
+    enable: false, // fully disable ESLint in CRACO (no runtime dependency)
   },
+
   babel: {
     presets: [
       [
-        '@babel/preset-react',
+        "@babel/preset-react",
         {
-          runtime: 'automatic',
+          runtime: "automatic",
         },
       ],
     ],
