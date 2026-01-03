@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +31,8 @@ const Sermons = () => {
   const [uniqueSpeakers, setUniqueSpeakers] = useState([]);
   const [uniqueSeries, setUniqueSeries] = useState([]);
   const [uniqueYears, setUniqueYears] = useState([]);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
 
   useEffect(() => {
     fetchSermons();
@@ -38,8 +40,8 @@ const Sermons = () => {
 
   useEffect(() => {
     if (sermons.length > 0) {
-      setUniqueSpeakers([...new Set(sermons.map((s) => s.speaker).filter(Boolean))]);
-      setUniqueSeries([...new Set(sermons.map((s) => s.series).filter(Boolean))]);
+      setUniqueSpeakers([...new Set(sermons.map((s) => s.speaker || '').filter(Boolean))]);
+      setUniqueSeries([...new Set(sermons.map((s) => s.series || '').filter(Boolean))]);
       setUniqueYears(
         [...new Set(sermons.map((s) => new Date(s.date).getFullYear()).filter(Boolean))].sort(
           (a, b) => b - a
@@ -51,7 +53,7 @@ const Sermons = () => {
   const fetchSermons = async () => {
     try {
       const response = await api.get('/api/sermons?limit=50');
-      setSermons(response.data);
+      setSermons(response.data || []);
     } catch (error) {
       console.error('Error fetching sermons:', error);
     } finally {
@@ -73,20 +75,37 @@ const Sermons = () => {
       day: 'numeric',
     });
 
-  const filteredSermons = sermons.filter((sermon) => {
-    const matchesSearch =
-      sermon.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sermon.speaker.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (sermon.description && sermon.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (sermon.series && sermon.series.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (sermon.scripture && sermon.scripture.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredSermons = useMemo(() => {
+    return sermons.filter((sermon) => {
+      const matchesSearch =
+        sermon.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sermon.speaker?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sermon.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sermon.series?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sermon.scripture?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesSpeaker = !filterSpeaker || sermon.speaker === filterSpeaker;
-    const matchesSeries = !filterSeries || sermon.series === filterSeries;
-    const matchesYear = !filterYear || new Date(sermon.date).getFullYear().toString() === filterYear;
+      const matchesSpeaker = !filterSpeaker || sermon.speaker === filterSpeaker;
+      const matchesSeries = !filterSeries || sermon.series === filterSeries;
+      const matchesYear = !filterYear || new Date(sermon.date).getFullYear().toString() === filterYear;
 
-    return matchesSearch && matchesSpeaker && matchesSeries && matchesYear;
-  });
+      return matchesSearch && matchesSpeaker && matchesSeries && matchesYear;
+    });
+  }, [sermons, searchTerm, filterSpeaker, filterSeries, filterYear]);
+
+  const handleNewsletterSubscribe = async () => {
+    if (!newsletterEmail) return;
+    setNewsletterLoading(true);
+    try {
+      await api.post('/api/newsletter/subscribe', { email: newsletterEmail });
+      alert('Subscribed successfully!');
+      setNewsletterEmail('');
+    } catch (err) {
+      console.error(err);
+      alert('Subscription failed. Please try again.');
+    } finally {
+      setNewsletterLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -128,7 +147,6 @@ const Sermons = () => {
 
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                {/* Search */}
                 <div className="md:col-span-2 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <Input
@@ -136,12 +154,12 @@ const Sermons = () => {
                     placeholder="Search by title, speaker, or scripture..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
+                    aria-label="Search sermons"
                     className="pl-10"
                   />
                 </div>
 
-                {/* Speaker */}
-                <Select value={filterSpeaker} onValueChange={setFilterSpeaker}>
+                <Select value={filterSpeaker} onValueChange={setFilterSpeaker} aria-label="Filter by speaker">
                   <SelectTrigger>
                     <SelectValue placeholder="All Speakers" />
                   </SelectTrigger>
@@ -155,8 +173,7 @@ const Sermons = () => {
                   </SelectContent>
                 </Select>
 
-                {/* Series */}
-                <Select value={filterSeries} onValueChange={setFilterSeries}>
+                <Select value={filterSeries} onValueChange={setFilterSeries} aria-label="Filter by series">
                   <SelectTrigger>
                     <SelectValue placeholder="All Series" />
                   </SelectTrigger>
@@ -170,8 +187,7 @@ const Sermons = () => {
                   </SelectContent>
                 </Select>
 
-                {/* Year */}
-                <Select value={filterYear} onValueChange={setFilterYear}>
+                <Select value={filterYear} onValueChange={setFilterYear} aria-label="Filter by year">
                   <SelectTrigger>
                     <SelectValue placeholder="All Years" />
                   </SelectTrigger>
@@ -186,7 +202,6 @@ const Sermons = () => {
                 </Select>
               </div>
 
-              {/* Active Filters */}
               {(searchTerm || filterSpeaker || filterSeries || filterYear) && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {searchTerm && <Badge variant="secondary">Search: "{searchTerm}"</Badge>}
@@ -231,13 +246,13 @@ const Sermons = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredSermons.map((s) => (
                   <Card key={s.id} className="flex flex-col hover:shadow-xl transition-all border border-gray-200 overflow-hidden group">
-                    {/* Thumbnail */}
                     <div className="relative h-48 overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700">
                       {s.thumbnail_url ? (
                         <img
                           src={s.thumbnail_url}
-                          alt={s.title}
+                          alt={s.title || 'Sermon thumbnail'}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -258,11 +273,11 @@ const Sermons = () => {
                         <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
                           <div className="flex items-center">
                             <User className="h-4 w-4 mr-1" />
-                            {s.speaker}
+                            {s.speaker || 'Unknown'}
                           </div>
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-1" />
-                            {formatDate(s.date)}
+                            {s.date ? formatDate(s.date) : 'Unknown Date'}
                           </div>
                         </div>
                       </CardDescription>
@@ -324,7 +339,7 @@ const Sermons = () => {
         </div>
       </section>
 
-      {/* Call to Action */}
+      {/* Newsletter CTA */}
       <section className="py-12 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Never Miss a Sermon</h2>
@@ -332,8 +347,20 @@ const Sermons = () => {
             Subscribe to our newsletter to get notified when new sermons are published
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-            <Input type="email" placeholder="Enter your email" className="flex-grow" />
-            <Button className="bg-blue-600 hover:bg-blue-700">Subscribe</Button>
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              className="flex-grow"
+            />
+            <Button
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleNewsletterSubscribe}
+              disabled={newsletterLoading || !newsletterEmail}
+            >
+              {newsletterLoading ? 'Subscribing...' : 'Subscribe'}
+            </Button>
           </div>
         </div>
       </section>
