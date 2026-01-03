@@ -1,3 +1,4 @@
+// frontend/src/pages/About.js
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,97 +7,38 @@ import { Users, Heart, BookOpen, Globe, Target, Star, Shield, Cross, Book, Users
 
 const About = () => {
   const coreValues = [
-    { 
-      letter: 'S', 
-      meaning: 'Seek God first', 
-      scripture: 'Matthew 6:33',
-      description: 'Putting God at the center of everything we do',
-      icon: <Target className="h-8 w-8 text-blue-600" />
-    },
-    { 
-      letter: 'E', 
-      meaning: 'Evangelism', 
-      scripture: 'Matthew 28:19',
-      description: 'Spreading the Gospel to all nations',
-      icon: <Globe className="h-8 w-8 text-green-600" />
-    },
-    { 
-      letter: 'E', 
-      meaning: 'Excellence', 
-      scripture: 'Daniel 5:14, 6:3',
-      description: 'Doing everything with excellence for God\'s glory',
-      icon: <Star className="h-8 w-8 text-yellow-600" />
-    },
-    { 
-      letter: 'H', 
-      meaning: 'Honor and Humility', 
-      scripture: 'Romans 12:10, 1 Peter 5:5',
-      description: 'Respecting others and walking in humility',
-      icon: <Users className="h-8 w-8 text-purple-600" />
-    },
-    { 
-      letter: 'I', 
-      meaning: 'Integrity', 
-      scripture: 'Job 31:6',
-      description: 'Living with honesty and moral uprightness',
-      icon: <Shield className="h-8 w-8 text-indigo-600" />
-    },
-    { 
-      letter: 'M', 
-      meaning: 'Mentoring', 
-      scripture: '2 Timothy 2:2',
-      description: 'Developing leaders through discipleship',
-      icon: <BookOpen className="h-8 w-8 text-pink-600" />
-    }
+    { letter: 'S', meaning: 'Seek God first', scripture: 'Matthew 6:33', description: 'Putting God at the center of everything we do', icon: <Target className="h-8 w-8 text-blue-600" /> },
+    { letter: 'E', meaning: 'Evangelism', scripture: 'Matthew 28:19', description: 'Spreading the Gospel to all nations', icon: <Globe className="h-8 w-8 text-green-600" /> },
+    { letter: 'E', meaning: 'Excellence', scripture: 'Daniel 5:14, 6:3', description: 'Doing everything with excellence for God\'s glory', icon: <Star className="h-8 w-8 text-yellow-600" /> },
+    { letter: 'H', meaning: 'Honor and Humility', scripture: 'Romans 12:10, 1 Peter 5:5', description: 'Respecting others and walking in humility', icon: <Users className="h-8 w-8 text-purple-600" /> },
+    { letter: 'I', meaning: 'Integrity', scripture: 'Job 31:6', description: 'Living with honesty and moral uprightness', icon: <Shield className="h-8 w-8 text-indigo-600" /> },
+    { letter: 'M', meaning: 'Mentoring', scripture: '2 Timothy 2:2', description: 'Developing leaders through discipleship', icon: <BookOpen className="h-8 w-8 text-pink-600" /> }
   ];
 
   const objectives = [
-    {
-      title: 'Spiritual Foundation',
-      description: 'To win lost souls to Christ and build lives through spiritual teachings',
-      icon: <Cross className="h-6 w-6 text-blue-600" />
-    },
-    {
-      title: 'Leadership Development',
-      description: 'To train and equip community leaders for nation building',
-      icon: <Users2 className="h-6 w-6 text-green-600" />
-    },
-    {
-      title: 'Church Empowerment',
-      description: 'To develop self-reliant churches centered in teaching and care',
-      icon: <Heart className="h-6 w-6 text-purple-600" />
-    },
-    {
-      title: 'Sound Doctrine',
-      description: 'Teaching healthy biblical doctrine for faith and conduct',
-      icon: <Book className="h-6 w-6 text-yellow-600" />
-    },
-    {
-      title: 'Character Transformation',
-      description: 'Promoting change in character, conduct and conversation',
-      icon: <Lightbulb className="h-6 w-6 text-indigo-600" />
-    },
-    {
-      title: 'Community Service',
-      description: 'Serving abandoned children and orphans through life skills',
-      icon: <HandHeart className="h-6 w-6 text-pink-600" />
-    }
+    { title: 'Spiritual Foundation', description: 'To win lost souls to Christ and build lives through spiritual teachings', icon: <Cross className="h-6 w-6 text-blue-600" /> },
+    { title: 'Leadership Development', description: 'To train and equip community leaders for nation building', icon: <Users2 className="h-6 w-6 text-green-600" /> },
+    { title: 'Church Empowerment', description: 'To develop self-reliant churches centered in teaching and care', icon: <Heart className="h-6 w-6 text-purple-600" /> },
+    { title: 'Sound Doctrine', description: 'Teaching healthy biblical doctrine for faith and conduct', icon: <Book className="h-6 w-6 text-yellow-600" /> },
+    { title: 'Character Transformation', description: 'Promoting change in character, conduct and conversation', icon: <Lightbulb className="h-6 w-6 text-indigo-600" /> },
+    { title: 'Community Service', description: 'Serving abandoned children and orphans through life skills', icon: <HandHeart className="h-6 w-6 text-pink-600" /> }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+
       {/* Hero Section */}
       <section 
         className="bg-gradient-to-r from-blue-800 to-indigo-900 text-white py-24"
         style={{
-          backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(/images/herobg.jpg)',
+          backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(https://source.unsplash.com/1600x900/?church)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed'
         }}
       >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6" data-testid="about-title">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
             Our Mission & Vision
           </h1>
           <p className="text-xl md:text-2xl text-gray-200 max-w-3xl mx-auto mb-8">
@@ -149,7 +91,6 @@ const About = () => {
                 title: 'Our Goals',
                 icon: <Target className="h-7 w-7 text-white" />,
                 bg: 'from-purple-500 to-purple-600',
-                text: '',
                 list: [
                   'Empowering children spiritually, physically and mentally',
                   'Teaching obedience and honor for Godʼs word',
@@ -159,10 +100,7 @@ const About = () => {
                 footerText: 'Transformative community impact'
               }
             ].map((item, i) => (
-              <Card 
-                key={i} 
-                className="border-0 hover:shadow-xl transition-transform duration-300 hover:-translate-y-1"
-              >
+              <Card key={i} className="border-0 hover:shadow-xl transition-transform duration-300 hover:-translate-y-1">
                 <CardHeader>
                   <div className={`bg-gradient-to-r ${item.bg} rounded-full p-3 w-14 h-14 flex items-center justify-center mb-4`}>
                     {item.icon}
@@ -205,16 +143,10 @@ const About = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {coreValues.map((value, index) => (
-              <Card 
-                key={index} 
-                className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md"
-                aria-label={`${value.meaning}: ${value.description} (${value.scripture})`}
-              >
+              <Card key={index} className="hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-md">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <div className={`p-3 rounded-lg bg-white shadow flex items-center justify-center`}>
-                      {value.icon}
-                    </div>
+                    <div className="p-3 rounded-lg bg-white shadow flex items-center justify-center">{value.icon}</div>
                     <Badge className="bg-gray-100 text-gray-800">{value.letter}</Badge>
                   </div>
                 </CardHeader>
@@ -245,9 +177,7 @@ const About = () => {
               <Card key={index} className="hover:shadow-lg transition-shadow duration-300">
                 <CardHeader>
                   <div className="flex items-center space-x-3">
-                    <div className="bg-gray-100 rounded-full p-2 flex-shrink-0">
-                      {obj.icon}
-                    </div>
+                    <div className="bg-gray-100 rounded-full p-2 flex-shrink-0">{obj.icon}</div>
                     <CardTitle className="text-lg">{obj.title}</CardTitle>
                   </div>
                 </CardHeader>
@@ -280,6 +210,7 @@ const About = () => {
           </div>
         </div>
       </section>
+
     </div>
   );
 };
