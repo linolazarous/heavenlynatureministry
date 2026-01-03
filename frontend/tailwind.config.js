@@ -1,10 +1,7 @@
 // frontend/tailwind.config.js
 module.exports = {
   darkMode: ["class"],
-  content: [
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html",
-  ],
+  content: ["./src/**/*.{js,jsx}", "./public/index.html"],
 
   theme: {
     extend: {
@@ -38,15 +35,15 @@ module.exports = {
         ring: "hsl(var(--ring))",
       },
 
+      fontFamily: {
+        sans: ["Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+      },
+
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-      },
-
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
       },
     },
   },
@@ -56,14 +53,5 @@ module.exports = {
     require("@tailwindcss/typography"),
     require("@tailwindcss/forms"),
     require("@tailwindcss/aspect-ratio"),
-
-    function ({ addUtilities }) {
-      addUtilities({
-        ".scrollbar-none": {
-          scrollbarWidth: "none",
-          "&::-webkit-scrollbar": { display: "none" },
-        },
-      });
-    },
   ],
 };
