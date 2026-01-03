@@ -613,7 +613,7 @@ const Donate = () => {
             variant="outline"
             className="border-white text-white hover:bg-white/10"
           >
-            <a href="mailto:giving@heavenlynature.org">Contact Our Giving Team</a>
+            <a href="mailto:info@heavenlynatureministry.com">Contact Our Giving Team</a>
           </Button>
         </div>
       </section>
