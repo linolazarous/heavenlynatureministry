@@ -53,5 +53,14 @@ module.exports = {
     require("@tailwindcss/typography"),
     require("@tailwindcss/forms"),
     require("@tailwindcss/aspect-ratio"),
+
+    function ({ addUtilities }) {
+      addUtilities({
+        ".scrollbar-none": {
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+        },
+      });
+    },
   ],
 };
