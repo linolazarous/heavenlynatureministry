@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import api from '@/api/axios';
@@ -35,14 +35,15 @@ const Home = () => {
       {/* Hero Section */}
       <section
         className="relative min-h-[90vh] flex items-center justify-center bg-cover bg-center bg-fixed"
-        style={{
-          backgroundImage: 'url(/images/worship-bg.jpg)',
-        }}
+        style={{ backgroundImage: 'url(/images/worship-bg.jpg)' }}
       >
+        {/* Overlay */}
         <div className="absolute inset-0 bg-black/60"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
 
+        {/* Content */}
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-center">
+          {/* Logo */}
           <div className="flex justify-center mb-8">
             <img
               src="/images/logo.png"
@@ -51,10 +52,10 @@ const Home = () => {
             />
           </div>
 
+          {/* Hero Title */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight drop-shadow-lg">
             Heavenly Nature <span className="text-blue-300">Ministry</span>
           </h1>
-
           <p className="text-xl md:text-2xl text-gray-200 mb-10 max-w-3xl mx-auto drop-shadow-lg">
             Where Faith, Nature, and Community Converge for Spiritual Transformation
           </p>
@@ -166,8 +167,8 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Other Sections like Welcome, Ministries, Sermons, Events, and CTA */}
-      {/* For brevity, you can copy-paste your previous code below and just ensure all hero images use `/images/worship-bg.jpg` */}
+      {/* Other Sections */}
+      {/* Make sure any other background images also use /images/... */}
     </div>
   );
 };
