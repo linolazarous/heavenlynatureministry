@@ -1,0 +1,121 @@
+{
+  "brand_identity": {
+    "name": "Heavenly Nature Ministry",
+    "slogan": "We are one",
+    "mission": "To empower street/abandoned children and orphans to fully utilize their spiritual, physical, and mental gifts to become self-reliant and harmonious citizens.",
+    "vision": "To raise self-reliant and God-fearing generations in South Sudan and beyond.",
+    "location": "Juba, South Sudan",
+    "target_audience": "Street children, orphans, donors, volunteers"
+  },
+  "design_principles": {
+    "core_values": [
+      "Hope & Dignity",
+      "Unity (We are one)",
+      "Transparency",
+      "Accessibility (Low Bandwidth)"
+    ],
+    "visual_style": "Organic & Earthy with Royal Accents. A blend of warm African earth tones grounded by deep spiritual blues and highlighted with royal gold.",
+    "low_bandwidth_strategy": "Prioritize CSS effects over images. Use SVG icons. Lazy load all non-critical assets. No autoplay videos."
+  },
+  "typography": {
+    "headings": {
+      "family": "Playfair Display, serif",
+      "weights": ["600", "700", "800"],
+      "usage": "Main headers (H1-H3). Use tight tracking (-0.02em) for a premium feel."
+    },
+    "body": {
+      "family": "Manrope, sans-serif",
+      "weights": ["400", "500", "600"],
+      "usage": "Paragraphs, UI elements, navigation. High readability."
+    },
+    "accents": {
+      "family": "Manrope, sans-serif",
+      "style": "uppercase tracking-widest text-xs font-bold",
+      "usage": "Overlines, tags, small labels."
+    }
+  },
+  "colors": {
+    "palette_name": "Grounded Royal",
+    "light_mode": {
+      "background": "#FDFBF7",
+      "foreground": "#1A1A1A",
+      "primary": "#1E3A8A",
+      "secondary": "#E5E0D8",
+      "accent": "#D4AF37",
+      "muted": "#F3F4F6",
+      "border": "#E5E7EB"
+    },
+    "dark_mode": {
+      "background": "#0F172A",
+      "foreground": "#F3F4F6",
+      "primary": "#60A5FA",
+      "secondary": "#1E293B",
+      "accent": "#FCD34D",
+      "muted": "#1F2937",
+      "border": "#374151"
+    },
+    "usage_rules": {
+      "primary": "Main actions, headers, strong brand presence.",
+      "accent": "Call to actions (Donate), highlights, spiritual metaphors (light/crown).",
+      "earth_tones": "Backgrounds, sections, to ground the design in the local context."
+    }
+  },
+  "layout": {
+    "grid_system": "Bento Grid (Mode A for Marketing, Mode B for Dashboard)",
+    "spacing": "Generous. Use p-8 to p-12 for section padding. Gap-6 to Gap-8 for grids.",
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "mobile_first": "Stack all grids to col-span-1 on mobile. Images max-h-[50vh] on mobile."
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-white hover:bg-primary/90 rounded-full px-8 py-3 font-semibold shadow-lg hover:shadow-xl transition-all",
+      "secondary": "bg-transparent border-2 border-primary text-primary hover:bg-primary/5 rounded-full px-8 py-3 font-semibold transition-all",
+      "accent": "bg-accent text-black hover:bg-accent/90 rounded-full px-8 py-3 font-bold shadow-glow transition-all"
+    },
+    "cards": {
+      "style": "bg-card border border-border/50 shadow-sm hover:shadow-md transition-all duration-300 rounded-xl overflow-hidden",
+      "content_padding": "p-6 or p-8"
+    },
+    "inputs": {
+      "style": "bg-background border-input focus:ring-2 focus:ring-primary/20 rounded-lg h-12 px-4"
+    }
+  },
+  "assets": {
+    "image_urls": {
+      "hero_worship": "https://images.unsplash.com/photo-1642654877094-e8db202268de?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "children_smiling": "https://images.unsplash.com/photo-1761168434263-1a01b07b64d8?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "community_group": "https://images.unsplash.com/photo-1700934909225-072b51bae308?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "bible_study": "https://images.unsplash.com/photo-1716666178997-6e4a056f07d1?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "prayer_hands": "https://images.unsplash.com/photo-1632156488328-ffab145c34e4?crop=entropy&cs=srgb&fm=jpg&q=85"
+    },
+    "icons": "Use Lucide React icons. Thin stroke (1.5px) for elegance."
+  },
+  "accessibility": {
+    "contrast": "Ensure 4.5:1 contrast ratio for text. Use darker earth tones for text on light backgrounds.",
+    "reduced_motion": "Respect prefers-reduced-motion. Disable parallax on low power mode.",
+    "low_bandwidth": "Compress all images to WebP. Lazy load images below the fold. Use system fonts as fallback."
+  },
+  "tech_stack": {
+    "frontend": "React 19, Vite, TypeScript, Tailwind CSS",
+    "ui_lib": "Shadcn/UI (Radix Primitives)",
+    "icons": "Lucide React",
+    "state": "React Context / Zustand",
+    "routing": "React Router"
+  },
+  "instructions_to_main_agent": [
+    "1. Install dependencies: `npm install lucide-react clsx tailwind-merge @radix-ui/react-slot class-variance-authority`",
+    "2. Configure Tailwind theme with the colors and fonts defined above.",
+    "3. Create a `Layout` component that handles the responsive container and navigation.",
+    "4. Implement the 'Home' page first, focusing on the Hero section with the 'hero_worship' image and the 'We are one' slogan.",
+    "5. Build the 'Donation' component using the 'accent' color for the main CTA.",
+    "6. Ensure all images have `loading='lazy'` except the LCP (Largest Contentful Paint) image.",
+    "7. Use 'Playfair Display' for all H1-H3 tags and 'Manrope' for body text."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not use generic centered layouts. Use asymmetry.",
+    "Use 2-3x more spacing than typical designs.",
+    "Every interaction needs micro-animations.",
+    "Use 'sonner' for toasts.",
+    "All interactive elements must have `data-testid`."
+  ]
+}
