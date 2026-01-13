@@ -1,7 +1,11 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
+
+# =======================
+# Enums
+# =======================
 
 class DonationCategory(str, Enum):
     GENERAL = "general"
@@ -30,6 +34,10 @@ class UserRole(str, Enum):
     VOLUNTEER = "volunteer"
     MEMBER = "member"
 
+# =======================
+# Sermons
+# =======================
+
 class SermonCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     speaker: str
@@ -50,6 +58,10 @@ class Sermon(SermonCreate):
     updated_at: datetime
     view_count: int = 0
     download_count: int = 0
+
+# =======================
+# Events
+# =======================
 
 class EventCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
@@ -83,6 +95,10 @@ class EventRSVP(EventRSVPCreate):
     status: EventRSVPStatus = EventRSVPStatus.PENDING
     created_at: datetime
 
+# =======================
+# Donations
+# =======================
+
 class DonationCreate(BaseModel):
     amount: float = Field(..., gt=0)
     currency: str = Field(default="usd")
@@ -102,6 +118,10 @@ class Donation(DonationCreate):
     created_at: datetime
     updated_at: datetime
 
+# =======================
+# Prayer Requests
+# =======================
+
 class PrayerRequestCreate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -117,6 +137,10 @@ class PrayerRequest(PrayerRequestCreate):
     testimony: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+
+# =======================
+# Volunteers
+# =======================
 
 class VolunteerCreate(BaseModel):
     first_name: str = Field(..., min_length=1)
@@ -136,6 +160,10 @@ class Volunteer(VolunteerCreate):
     created_at: datetime
     updated_at: datetime
 
+# =======================
+# Blog
+# =======================
+
 class BlogPostCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     slug: str
@@ -154,6 +182,10 @@ class BlogPost(BlogPostCreate):
     published_at: Optional[datetime] = None
     view_count: int = 0
 
+# =======================
+# Resources
+# =======================
+
 class ResourceCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: str
@@ -168,6 +200,10 @@ class Resource(ResourceCreate):
     id: str
     created_at: datetime
     download_count: int = 0
+
+# =======================
+# Live Streams
+# =======================
 
 class LiveStreamCreate(BaseModel):
     title: str
@@ -186,13 +222,21 @@ class LiveStream(LiveStreamCreate):
     created_at: datetime
     updated_at: datetime
 
+# =======================
+# Chat Messages
+# =======================
+
 class ChatMessage(BaseModel):
     stream_id: str
     user_name: str
     message: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now())
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))  # UTC
     is_prayer_request: bool = False
     moderated: bool = False
+
+# =======================
+# Users and Auth
+# =======================
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -207,6 +251,10 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+# =======================
+# Ministry Info
+# =======================
 
 class MinistryInfo(BaseModel):
     name: str = "Heavenly Nature Ministry"
