@@ -20,12 +20,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { createDonationCheckout, getDonationStatus } from "@/lib/api";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+);
 
 const Donations = () => {
   const [searchParams] = useSearchParams();
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("general");
   const [frequency, setFrequency] = useState("one_time");
+  const [currency, setCurrency] = useState("USD");
   const [donorInfo, setDonorInfo] = useState({
     name: "",
     email: "",
@@ -37,7 +43,10 @@ const Donations = () => {
     bankName: "Equity Bank Limited Southern Sudan",
     switchCode: "EQBLSSJB",
     accountName: "Heavenly Nature Ministry",
-    accountNumber: "2010211361856",
+    accounts: {
+      USD: "2010211361856",
+      SSP: "2010211361855",
+    },
   };
 
   const mobileMoneyDetails = {
@@ -74,7 +83,7 @@ const Donations = () => {
     try {
       const result = await createDonationCheckout({
         amount: parseFloat(amount),
-        currency: "usd",
+        currency: currency.toLowerCase(),
         category,
         frequency,
         donor_name: donorInfo.name || null,
@@ -123,7 +132,7 @@ const Donations = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>Donation Amount (USD)</Label>
+                <Label>Donation Amount</Label>
                 <Input
                   type="number"
                   min="1"
@@ -131,6 +140,19 @@ const Donations = () => {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
+              </div>
+
+              <div>
+                <Label>Currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="SSP">SSP</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
@@ -199,13 +221,9 @@ const Donations = () => {
                 onClick={handleDonate}
                 disabled={loading}
               >
-                {loading ? "Processing..." : "Donate Now"}
+                {loading ? "Processing..." : "Donate Securely"}
                 <Heart className="ml-2 h-5 w-5" />
               </Button>
-
-              <p className="text-sm text-center text-muted-foreground italic">
-                Stripe payments — COMING SOON
-              </p>
             </CardContent>
           </Card>
 
@@ -219,28 +237,71 @@ const Donations = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {[
-                  ["Bank Name", bankDetails.bankName],
-                  ["Account Name", bankDetails.accountName],
-                  ["Account Number", bankDetails.accountNumber],
-                  ["Head Office Switch Code", bankDetails.switchCode],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {label}
-                    </p>
-                    <div className="flex items-center justify-between bg-secondary/50 p-3 rounded-lg">
-                      <span className="font-medium">{value}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(value, label)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Bank Name</p>
+                  <p className="font-medium">{bankDetails.bankName}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Head Office Switch Code
+                  </p>
+                  <div className="flex items-center justify-between bg-secondary/50 p-3 rounded-lg">
+                    <span>{bankDetails.switchCode}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard(bankDetails.switchCode, "Switch Code")
+                      }
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
                   </div>
-                ))}
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Account Name
+                  </p>
+                  <p className="font-medium">{bankDetails.accountName}</p>
+                </div>
+
+                <div>
+                  <Label>Account Currency</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD Account</SelectItem>
+                      <SelectItem value="SSP">SSP Account</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Account Number ({currency})
+                  </p>
+                  <div className="flex items-center justify-between bg-secondary/50 p-3 rounded-lg">
+                    <span className="font-medium">
+                      {bankDetails.accounts[currency]}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        copyToClipboard(
+                          bankDetails.accounts[currency],
+                          "Account Number"
+                        )
+                      }
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -251,32 +312,29 @@ const Donations = () => {
                   Mobile Money
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  ["Mobile Number", mobileMoneyDetails.mobileNumber],
-                  ["Network", mobileMoneyDetails.network],
-                  ["Account Name", mobileMoneyDetails.accountName],
-                ].map(([label, value]) => (
-                  <div key={label}>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {label}
-                    </p>
-                    <div className="flex items-center justify-between bg-secondary/50 p-3 rounded-lg">
-                      <span className="font-medium">{value}</span>
-                      {label === "Mobile Number" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            copyToClipboard(value, label)
-                          }
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <CardContent className="space-y-3">
+                <p>
+                  <strong>Network:</strong> {mobileMoneyDetails.network}
+                </p>
+                <p>
+                  <strong>Account Name:</strong>{" "}
+                  {mobileMoneyDetails.accountName}
+                </p>
+                <div className="flex items-center justify-between bg-secondary/50 p-3 rounded-lg">
+                  <span>{mobileMoneyDetails.mobileNumber}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      copyToClipboard(
+                        mobileMoneyDetails.mobileNumber,
+                        "Mobile Number"
+                      )
+                    }
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -293,7 +351,7 @@ const Donations = () => {
                 >
                   <Button variant="outline" className="w-full">
                     <MessageCircle className="mr-2 h-5 w-5" />
-                    WhatsApp Donation Inquiry
+                    WhatsApp Donation Support
                   </Button>
                 </a>
               </CardContent>
