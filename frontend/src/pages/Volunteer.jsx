@@ -71,16 +71,20 @@ const Volunteer = () => {
 
   return (
     <div className="min-h-screen">
+      {/* HERO */}
       <section className="bg-gradient-to-br from-primary/10 to-accent/10 py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <Users className="h-16 w-16 text-primary mx-auto mb-4" />
-          <h1 className="font-heading text-5xl lg:text-6xl font-bold mb-6 text-primary">Volunteer With Us</h1>
+          <h1 className="font-heading text-5xl lg:text-6xl font-bold mb-6 text-primary">
+            Volunteer With Us
+          </h1>
           <p className="text-xl text-muted-foreground">
             Join our team and make an eternal impact in the lives of children
           </p>
         </div>
       </section>
 
+      {/* FORM */}
       <section className="section-padding bg-background">
         <div className="max-w-3xl mx-auto">
           <Card className="shadow-lg">
@@ -89,6 +93,8 @@ const Volunteer = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
+
+                {/* Name */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="first_name">First Name *</Label>
@@ -97,7 +103,6 @@ const Volunteer = () => {
                       value={formData.first_name}
                       onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                       required
-                      data-testid="volunteer-first-name-input"
                     />
                   </div>
                   <div>
@@ -107,11 +112,11 @@ const Volunteer = () => {
                       value={formData.last_name}
                       onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                       required
-                      data-testid="volunteer-last-name-input"
                     />
                   </div>
                 </div>
 
+                {/* Contact */}
                 <div>
                   <Label htmlFor="email">Email *</Label>
                   <Input
@@ -120,10 +125,8 @@ const Volunteer = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
-                    data-testid="volunteer-email-input"
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="phone">Phone *</Label>
                   <Input
@@ -132,20 +135,18 @@ const Volunteer = () => {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     required
-                    data-testid="volunteer-phone-input"
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="address">Address</Label>
                   <Input
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    data-testid="volunteer-address-input"
                   />
                 </div>
 
+                {/* Areas of Interest */}
                 <div>
                   <Label className="mb-3 block">Areas of Interest *</Label>
                   <div className="grid grid-cols-2 gap-3">
@@ -155,28 +156,26 @@ const Volunteer = () => {
                           id={area}
                           checked={formData.areas_of_interest.includes(area)}
                           onCheckedChange={() => toggleInterest(area)}
-                          data-testid={`volunteer-interest-${area.toLowerCase().replace(/\s+/g, '-')}`}
                         />
-                        <Label htmlFor={area} className="text-sm cursor-pointer">
-                          {area}
-                        </Label>
+                        <Label htmlFor={area} className="text-sm cursor-pointer">{area}</Label>
                       </div>
                     ))}
                   </div>
                 </div>
 
+                {/* Availability */}
                 <div>
                   <Label htmlFor="availability">Availability *</Label>
                   <Textarea
                     id="availability"
-                    placeholder="When are you available to volunteer? (e.g., weekends, weekdays, specific times)"
+                    placeholder="When are you available to volunteer? (e.g., weekends, weekdays)"
                     value={formData.availability}
                     onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
                     required
-                    data-testid="volunteer-availability-textarea"
                   />
                 </div>
 
+                {/* Skills, Experience, Motivation */}
                 <div>
                   <Label htmlFor="skills">Skills & Talents</Label>
                   <Textarea
@@ -184,10 +183,8 @@ const Volunteer = () => {
                     placeholder="What skills or talents can you contribute?"
                     value={formData.skills}
                     onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                    data-testid="volunteer-skills-textarea"
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="experience">Relevant Experience</Label>
                   <Textarea
@@ -195,10 +192,8 @@ const Volunteer = () => {
                     placeholder="Do you have any experience in ministry or working with children?"
                     value={formData.experience}
                     onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                    data-testid="volunteer-experience-textarea"
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="motivation">Why do you want to volunteer?</Label>
                   <Textarea
@@ -206,11 +201,11 @@ const Volunteer = () => {
                     placeholder="Share your motivation for wanting to serve..."
                     value={formData.motivation}
                     onChange={(e) => setFormData({ ...formData, motivation: e.target.value })}
-                    data-testid="volunteer-motivation-textarea"
                   />
                 </div>
 
-                <Button type="submit" className="w-full text-lg py-6" disabled={submitting} data-testid="volunteer-submit-button">
+                {/* Submit */}
+                <Button type="submit" className="w-full text-lg py-6" disabled={submitting}>
                   {submitting ? "Submitting..." : "Submit Application"}
                 </Button>
               </form>
