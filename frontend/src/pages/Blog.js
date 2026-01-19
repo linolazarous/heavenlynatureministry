@@ -25,8 +25,12 @@ const Blog = () => {
     <div className="min-h-screen">
       <section className="bg-primary text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h1 className="font-heading text-5xl lg:text-6xl font-bold mb-6">Blog & Teachings</h1>
-          <p className="text-xl text-white/90">Insights, testimonies, and biblical teachings</p>
+          <h1 className="font-heading text-5xl lg:text-6xl font-bold mb-6">
+            Blog & Teachings
+          </h1>
+          <p className="text-xl text-white/90">
+            Insights, testimonies, and biblical teachings
+          </p>
         </div>
       </section>
 
@@ -54,7 +58,9 @@ const Blog = () => {
                     <CardTitle className="font-heading">{post.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-muted-foreground mb-4 line-clamp-3">{post.excerpt || post.content.substring(0, 150)}...</p>
+                    <p className="text-muted-foreground mb-4 line-clamp-3">
+                      {post.excerpt || `${post.content.substring(0, 150)}...`}
+                    </p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
@@ -71,7 +77,9 @@ const Blog = () => {
             </div>
           ) : (
             <div className="text-center py-20">
-              <p className="text-lg text-muted-foreground">No posts available yet. Check back soon!</p>
+              <p className="text-lg text-muted-foreground">
+                No posts available yet. Check back soon!
+              </p>
             </div>
           )}
         </div>
