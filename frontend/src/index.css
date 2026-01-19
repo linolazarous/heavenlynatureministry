@@ -1,68 +1,103 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+/* Google Fonts – loaded once, optimized for production */
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Manrope:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================
+   CSS Variables (Design Tokens)
+========================================= */
 @layer base {
   :root {
     --background: 41 33% 99%;
     --foreground: 0 0% 10%;
+
     --card: 0 0% 100%;
     --card-foreground: 0 0% 10%;
+
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 10%;
+
     --primary: 221 65% 32%;
     --primary-foreground: 0 0% 98%;
+
     --secondary: 36 18% 88%;
     --secondary-foreground: 0 0% 10%;
+
     --muted: 220 13% 96%;
     --muted-foreground: 220 9% 46%;
+
     --accent: 45 75% 53%;
     --accent-foreground: 0 0% 0%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
+
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 221 65% 32%;
+
     --radius: 0.75rem;
   }
 
+  /* Dark mode */
   .dark {
     --background: 222 47% 7%;
     --foreground: 220 13% 95%;
+
     --card: 222 43% 12%;
     --card-foreground: 220 13% 95%;
+
     --popover: 222 43% 12%;
     --popover-foreground: 220 13% 95%;
+
     --primary: 213 94% 68%;
     --primary-foreground: 0 0% 10%;
+
     --secondary: 222 47% 18%;
     --secondary-foreground: 220 13% 95%;
+
     --muted: 215 28% 17%;
     --muted-foreground: 220 9% 64%;
+
     --accent: 45 93% 62%;
     --accent-foreground: 0 0% 0%;
+
     --destructive: 0 62% 31%;
     --destructive-foreground: 220 13% 95%;
+
     --border: 215 28% 23%;
     --input: 215 28% 23%;
     --ring: 213 94% 68%;
   }
 }
 
+/* =========================================
+   Base Element Styling
+========================================= */
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading;
   }
 }
 
+/* =========================================
+   Utilities
+========================================= */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
