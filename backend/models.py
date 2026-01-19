@@ -16,6 +16,8 @@ class PyObjectId(str):
 
     @classmethod
     def validate(cls, v):
+        if isinstance(v, ObjectId):
+            return str(v)
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid ObjectId")
         return str(v)
@@ -24,7 +26,8 @@ class MongoModel(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
-        json_encoders={ObjectId: str}
+        json_encoders={ObjectId: str},
+        from_attributes=True
     )
 
 # =======================
@@ -91,11 +94,10 @@ class SermonCreate(BaseModel):
     download_url: Optional[str] = None
     tags: List[str] = Field(default_factory=list, examples=[["faith", "salvation", "grace"]])
 
-    @validator('end_date', pre=True, always=True)
-    def validate_dates(cls, v, values):
-        if 'start_date' in values and v:
-            if v <= values['start_date']:
-                raise ValueError('end_date must be after start_date')
+    @validator('date')
+    def validate_date_not_in_future(cls, v):
+        if v > datetime.now(timezone.utc):
+            raise ValueError('Sermon date cannot be in the future')
         return v
 
 class SermonUpdate(BaseModel):
@@ -138,6 +140,13 @@ class EventCreate(BaseModel):
     registration_required: bool = False
     category: EventCategory = EventCategory.WORSHIP
     price: Optional[float] = Field(None, ge=0, examples=[0.0])
+
+    @validator('end_date')
+    def validate_dates(cls, v, values):
+        if 'start_date' in values and v:
+            if v <= values['start_date']:
+                raise ValueError('end_date must be after start_date')
+        return v
 
 class EventUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -191,6 +200,12 @@ class DonationCreate(BaseModel):
     message: Optional[str] = Field(None, max_length=500, examples=["Thank you for your ministry"])
     anonymous: bool = False
     receipt_required: bool = True
+
+    @validator('amount')
+    def validate_amount(cls, v):
+        if v <= 0:
+            raise ValueError('Amount must be greater than 0')
+        return round(v, 2)
 
 class DonationUpdate(BaseModel):
     payment_status: Optional[str] = None
@@ -258,6 +273,13 @@ class VolunteerCreate(BaseModel):
     motivation: Optional[str] = Field(None, examples=["I want to serve the community"])
     emergency_contact: Optional[str] = Field(None, examples=["Mary Doe - 555-0123"])
     has_background_check: bool = False
+
+    @validator('phone')
+    def validate_phone(cls, v):
+        # Basic phone validation - can be enhanced based on requirements
+        if not v.replace('+', '').replace(' ', '').replace('-', '').isdigit():
+            raise ValueError('Phone number must contain only digits and valid separators')
+        return v
 
 class VolunteerUpdate(BaseModel):
     status: Optional[str] = None
@@ -348,6 +370,13 @@ class LiveStreamCreate(BaseModel):
     facebook_stream_id: Optional[str] = None
     vimeo_stream_id: Optional[str] = None
 
+    @validator('scheduled_end')
+    def validate_stream_end_time(cls, v, values):
+        if v and 'scheduled_start' in values:
+            if v <= values['scheduled_start']:
+                raise ValueError('scheduled_end must be after scheduled_start')
+        return v
+
 class LiveStreamUpdate(BaseModel):
     status: Optional[str] = None
     actual_start: Optional[datetime] = None
@@ -397,6 +426,16 @@ class UserCreate(BaseModel):
     date_of_birth: Optional[datetime] = None
     member_since: Optional[datetime] = None
 
+    @validator('password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(char.isdigit() for char in v):
+            raise ValueError('Password must contain at least one digit')
+        if not any(char.isupper() for char in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        return v
+
 class UserLogin(BaseModel):
     email: EmailStr = Field(..., examples=["user@example.com"])
     password: str = Field(..., examples=["StrongPass123!"])
@@ -419,6 +458,7 @@ class User(UserCreate, MongoModel):
     notifications_enabled: bool = True
     email_verified: bool = False
 
+    # Remove password from response
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -448,7 +488,7 @@ class TokenData(BaseModel):
 class MinistryInfo(BaseModel):
     name: str = Field(default="Heavenly Nature Ministry", examples=["Heavenly Nature Ministry"])
     slogan: str = Field(default="We are one", examples=["We are one"])
-    email: str = Field(..., examples=["info@heavenlynature.org"])
+    email: str = Field(..., examples=["info@heavenlynatureministry.com"])
     phone: str = Field(..., examples=["+211 926 006 202"])
     whatsapp: str = Field(..., examples=["+211 926 006 202"])
     address: str = Field(..., examples=["Gudele 2 Joppa Block 3, Juba South Sudan"])
@@ -460,8 +500,14 @@ class MinistryInfo(BaseModel):
     instagram_url: Optional[str] = None
     twitter_url: Optional[str] = None
     service_times: str = Field(default="Sundays: 9am & 1pm", 
-                              examples=["Sundays: 9am & 11am, Wednesdays: 7pm"])
+                              examples=["Sundays: 9am & 1pm, Wednesdays: 7pm"])
     pastor_name: Optional[str] = Field(None, examples=["Pastor John Mundari"])
+
+    @validator('email')
+    def validate_ministry_email(cls, v):
+        if not v or '@' not in v:
+            raise ValueError('Valid email required')
+        return v
 
 class MinistryInfoUpdate(BaseModel):
     name: Optional[str] = None
