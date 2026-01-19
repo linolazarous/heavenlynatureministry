@@ -1,26 +1,28 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+
 import Layout from "@/components/Layout";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
 import Sermons from "@/pages/Sermons";
 import Events from "@/pages/Events";
 import Donations from "@/pages/Donations";
+import DonationSuccess from "@/pages/DonationSuccess";
 import ChildrensMinistry from "@/pages/ChildrensMinistry";
 import Blog from "@/pages/Blog";
 import LiveStream from "@/pages/LiveStream";
 import PrayerRequests from "@/pages/PrayerRequests";
 import Resources from "@/pages/Resources";
 import Volunteer from "@/pages/Volunteer";
-import DonationSuccess from "@/pages/DonationSuccess";
+
 import "@/App.css";
 
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-right" />
+      <Toaster position="top-right" richColors />
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="about" element={<About />} />
           <Route path="sermons" element={<Sermons />} />
