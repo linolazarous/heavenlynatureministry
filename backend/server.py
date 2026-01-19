@@ -102,13 +102,13 @@ class Config:
     
     # Email
     RESEND_API_KEY = os.getenv('RESEND_API_KEY')
-    SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'noreply@heavenlynature.org')
+    SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'noreply@heavenlynatureministry.com)
     FROM_NAME = os.getenv('FROM_NAME', 'Heavenly Nature Ministry')
     
     # Ministry Info
-    MINISTRY_EMAIL = os.getenv('MINISTRY_EMAIL', 'info@heavenlynature.org')
-    MINISTRY_PHONE = os.getenv('MINISTRY_PHONE', '+211922273334')
-    MINISTRY_WHATSAPP = os.getenv('MINISTRY_WHATSAPP', '+211922273334')
+    MINISTRY_EMAIL = os.getenv('MINISTRY_EMAIL', 'info@heavenlynaselfministry.com')
+    MINISTRY_PHONE = os.getenv('MINISTRY_PHONE', '+211926006202')
+    MINISTRY_WHATSAPP = os.getenv('MINISTRY_WHATSAPP', '+211926006202')
     MINISTRY_ADDRESS = os.getenv('MINISTRY_ADDRESS', 'Gudele 2, Joppa Block 3, Juba, South Sudan')
     MINISTRY_LAT = float(os.getenv('MINISTRY_LOCATION_LAT', 4.8517))
     MINISTRY_LNG = float(os.getenv('MINISTRY_LOCATION_LNG', 31.5825))
@@ -212,13 +212,14 @@ class DatabaseManager:
     
     async def disconnect(self):
         """Disconnect from MongoDB"""
-        if self.client:
+        if self.client is not None:
             self.client.close()
             logger.info("Disconnected from MongoDB")
     
     def get_database(self) -> AsyncIOMotorDatabase:
         """Get database instance"""
-        if not self.db:
+        # FIXED: Use 'is None' instead of boolean testing
+        if self.db is None:
             raise RuntimeError("Database not connected")
         return self.db
 
@@ -419,7 +420,7 @@ async def root():
 @api_router.get("/health", response_model=SuccessResponse)
 async def health_check():
     """Health check endpoint for monitoring"""
-    db_status = "connected" if db_manager.db else "disconnected"
+    db_status = "connected" if db_manager.db is not None else "disconnected"
     
     return SuccessResponse(
         message="Service health status",
@@ -661,32 +662,6 @@ async def admin_dashboard(
 
 
 # -------------------------------
-# Application Lifespan Management
-# -------------------------------
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Manage application startup and shutdown events"""
-    # Startup
-    logger.info(f"Starting {Config.APP_NAME} v{Config.APP_VERSION} in {Config.APP_ENV} mode")
-    
-    # Connect to database
-    if await db_manager.connect():
-        # Create admin user if not exists
-        await create_admin_user()
-        logger.info("Application startup complete")
-    else:
-        logger.error("Failed to connect to database, application may not function properly")
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down application...")
-    await db_manager.disconnect()
-    logger.info("Application shutdown complete")
-
-
-# -------------------------------
 # Create Admin User
 # -------------------------------
 
@@ -694,6 +669,11 @@ async def create_admin_user():
     """Create initial admin user if it doesn't exist"""
     if not Config.ADMIN_EMAIL or not Config.ADMIN_PASSWORD:
         logger.warning("Admin credentials not provided, skipping admin user creation")
+        return
+    
+    # FIXED: Check if database is connected properly
+    if db_manager.db is None:
+        logger.warning("Database not connected, skipping admin user creation")
         return
     
     db = db_manager.get_database()
@@ -720,6 +700,36 @@ async def create_admin_user():
         logger.info(f"Admin user created: {Config.ADMIN_EMAIL}")
     else:
         logger.info(f"Admin user already exists: {Config.ADMIN_EMAIL}")
+
+
+# -------------------------------
+# Application Lifespan Management
+# -------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application startup and shutdown events"""
+    # Startup
+    logger.info(f"Starting {Config.APP_NAME} v{Config.APP_VERSION} in {Config.APP_ENV} mode")
+    
+    try:
+        # Connect to database
+        connected = await db_manager.connect()
+        if connected and db_manager.db is not None:
+            # Create admin user if not exists
+            await create_admin_user()
+            logger.info("Application startup complete")
+        else:
+            logger.error("Failed to connect to database, application may not function properly")
+    except Exception as e:
+        logger.error(f"Startup error: {str(e)}")
+    
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down application...")
+    await db_manager.disconnect()
+    logger.info("Application shutdown complete")
 
 
 # -------------------------------
@@ -905,8 +915,8 @@ if __name__ == "__main__":
     uvicorn.run(
         "server:app",
         host="0.0.0.0",
-        port=int(os.getenv("PORT", 8000)),
+        port=int(os.getenv("PORT", 10000)),
         reload=Config.DEBUG,
         log_level="info",
         access_log=False  # We handle logging in middleware
-    )
+)
