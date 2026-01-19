@@ -1,20 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Calendar,
-  Heart,
-  Users,
-  BookOpen,
-  ArrowRight,
-  Play,
-} from "lucide-react";
+import { Calendar, Heart, Users, BookOpen, ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSermons, getEvents } from "@/lib/api";
 
 const Home = () => {
@@ -58,8 +46,7 @@ const Home = () => {
               We Are One
             </h1>
             <p className="text-xl sm:text-2xl mb-4 text-white/90 max-w-2xl mx-auto">
-              Empowering street children and orphans to become self-reliant and
-              God-fearing citizens
+              Empowering street children and orphans to become self-reliant and God-fearing citizens
             </p>
             <p className="text-lg mb-8 text-accent/90 italic">
               “That they may be one as we are one” — John 17:22
@@ -71,10 +58,7 @@ const Home = () => {
                 </Button>
               </Link>
               <Link to="/about">
-                <Button
-                  variant="outline"
-                  className="px-10 py-6 text-lg bg-white/10 border-white/30 text-white hover:bg-white/20"
-                >
+                <Button variant="outline" className="px-10 py-6 text-lg bg-white/10 border-white/30 text-white hover:bg-white/20">
                   Learn More <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -123,8 +107,7 @@ const Home = () => {
                 <CardTitle>Excellence & Integrity</CardTitle>
               </CardHeader>
               <CardContent>
-                SEE HIM values — Seek God, Evangelism, Excellence, Honor,
-                Integrity, Mentoring
+                SEE HIM values — Seek God, Evangelism, Excellence, Honor, Integrity, Mentoring
               </CardContent>
             </Card>
           </div>
@@ -175,10 +158,7 @@ const Home = () => {
           ) : upcomingEvents.length ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {upcomingEvents.map((event) => (
-                <Card
-                  key={event.id}
-                  className="bg-white/10 border-white/20 text-white"
-                >
+                <Card key={event.id} className="bg-white/10 border-white/20 text-white">
                   <CardHeader>
                     <CardTitle>{event.title}</CardTitle>
                   </CardHeader>
