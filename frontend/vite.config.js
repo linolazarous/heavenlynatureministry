@@ -42,6 +42,7 @@ export default defineConfig(({ mode }) => {
       sourcemap: isDev,
       chunkSizeWarningLimit: 1500,
       rollupOptions: {
+        external: ["@stripe/stripe-js"], // Add this line
         output: {
           manualChunks: {
             react: ["react", "react-dom"],
