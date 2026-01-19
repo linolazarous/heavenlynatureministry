@@ -24,13 +24,17 @@ const Resources = () => {
 
   return (
     <div className="min-h-screen">
+      {/* HERO */}
       <section className="bg-primary text-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="font-heading text-5xl lg:text-6xl font-bold mb-6">Resource Library</h1>
-          <p className="text-xl text-white/90">Bible study materials, teachings, and ministry resources</p>
+          <p className="text-xl text-white/90">
+            Bible study materials, teachings, and ministry resources
+          </p>
         </div>
       </section>
 
+      {/* RESOURCES */}
       <section className="section-padding bg-background">
         <div className="max-w-7xl mx-auto">
           {loading ? (
@@ -60,7 +64,7 @@ const Resources = () => {
                       <span className="text-sm text-muted-foreground">{resource.category}</span>
                       {resource.file_url && (
                         <Button size="sm" variant="outline" asChild>
-                          <a href={resource.file_url} target="_blank" rel="noopener noreferrer">
+                          <a href={resource.file_url} target="_blank" rel="noopener noreferrer" className="flex items-center">
                             <Download className="h-4 w-4 mr-1" />
                             Download
                           </a>
@@ -73,7 +77,9 @@ const Resources = () => {
             </div>
           ) : (
             <div className="text-center py-20">
-              <p className="text-lg text-muted-foreground">No resources available yet. Check back soon!</p>
+              <p className="text-lg text-muted-foreground">
+                No resources available yet. Check back soon!
+              </p>
             </div>
           )}
         </div>
