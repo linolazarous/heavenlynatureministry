@@ -1,19 +1,19 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 
-import Layout from "@/components/Layout";
-import Home from "@/pages/Home";
-import About from "@/pages/About";
-import Sermons from "@/pages/Sermons";
-import Events from "@/pages/Events";
-import Donations from "@/pages/Donations";
-import DonationSuccess from "@/pages/DonationSuccess";
-import ChildrensMinistry from "@/pages/ChildrensMinistry";
-import Blog from "@/pages/Blog";
-import LiveStream from "@/pages/LiveStream";
-import PrayerRequests from "@/pages/PrayerRequests";
-import Resources from "@/pages/Resources";
-import Volunteer from "@/pages/Volunteer";
+import Layout from "@/components/Layout.jsx";
+import Home from "@/pages/Home.jsx";
+import About from "@/pages/About.jsx";
+import Sermons from "@/pages/Sermons.jsx";
+import Events from "@/pages/Events.jsx";
+import Donations from "@/pages/Donations.jsx";
+import DonationSuccess from "@/pages/DonationSuccess.jsx";
+import ChildrensMinistry from "@/pages/ChildrensMinistry.jsx";
+import Blog from "@/pages/Blog.jsx";
+import LiveStream from "@/pages/LiveStream.jsx";
+import PrayerRequests from "@/pages/PrayerRequests.jsx";
+import Resources from "@/pages/Resources.jsx";
+import Volunteer from "@/pages/Volunteer.jsx";
 
 import "@/App.css";
 
