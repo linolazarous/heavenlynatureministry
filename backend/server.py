@@ -91,7 +91,7 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv('JWT_REFRESH_TOKEN_EXPIRE_DAYS', 30))
     
     # Security
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:8000').split(',')
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'https://hnmfrontend-gedp-onrender-com.onrender.com').split(',')
     ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
     RATE_LIMIT_ENABLED = os.getenv('RATE_LIMIT_ENABLED', 'True').lower() == 'true'
     RATE_LIMIT_PER_MINUTE = int(os.getenv('RATE_LIMIT_PER_MINUTE', 60))
@@ -102,11 +102,11 @@ class Config:
     
     # Email
     RESEND_API_KEY = os.getenv('RESEND_API_KEY')
-    SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'noreply@heavenlynatureministry.com)
+    SENDER_EMAIL = os.getenv('SENDER_EMAIL', 'noreply@heavenlynatureministry.com')
     FROM_NAME = os.getenv('FROM_NAME', 'Heavenly Nature Ministry')
     
     # Ministry Info
-    MINISTRY_EMAIL = os.getenv('MINISTRY_EMAIL', 'info@heavenlynaselfministry.com')
+    MINISTRY_EMAIL = os.getenv('MINISTRY_EMAIL', 'info@heavenlynatureministry.com')
     MINISTRY_PHONE = os.getenv('MINISTRY_PHONE', '+211926006202')
     MINISTRY_WHATSAPP = os.getenv('MINISTRY_WHATSAPP', '+211926006202')
     MINISTRY_ADDRESS = os.getenv('MINISTRY_ADDRESS', 'Gudele 2, Joppa Block 3, Juba, South Sudan')
